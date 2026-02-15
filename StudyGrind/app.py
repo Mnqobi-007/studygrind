@@ -902,8 +902,14 @@ def internal_error(error):
 def unauthorized(error):
     return jsonify({'error': 'Unauthorized'}), 401
 
+if os.environ.get('RENDER'):
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'data', 'studygrind.db')
+    # Creates data directory
+    os.makedirs(os.path.join(basedir, 'data'), exist_ok=True)
+    os.makedirs(os.path.join(basedir, 'uploads'), exist_ok=True)
+
 # Run the application
-# Replace the bottom of your app.py with:
 if __name__ == '__main__':
     init_db()
     print("=" * 60)
@@ -912,4 +918,5 @@ if __name__ == '__main__':
     # Only run in debug mode locally
     import os
     if os.environ.get('RENDER') != 'true':
+
         app.run(debug=True, port=5000)
