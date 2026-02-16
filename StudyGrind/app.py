@@ -917,13 +917,24 @@ if os.environ.get('RENDER'):
 
 # Run the application
 if __name__ == '__main__':
+    # Create necessary directories
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    os.makedirs(os.path.join(basedir, 'data'), exist_ok=True)
+    os.makedirs(os.path.join(basedir, 'uploads'), exist_ok=True)
+    os.makedirs(os.path.join(basedir, 'uploads', 'textbooks'), exist_ok=True)
+    os.makedirs(os.path.join(basedir, 'uploads', 'resources'), exist_ok=True)
+    os.makedirs(os.path.join(basedir, 'uploads', 'assignments'), exist_ok=True)
+    os.makedirs(os.path.join(basedir, 'uploads', 'submissions'), exist_ok=True)
+    
+    # Initialize database
     init_db()
+    
     print("=" * 60)
     print("StudyGrind Application")
     print("=" * 60)
+    
     # Only run in debug mode locally
-    import os
     if os.environ.get('RENDER') != 'true':
+        app.run(debug=True, host='0.0.0.0', port=5000)
 
-        app.run(debug=True, port=5000)
 
