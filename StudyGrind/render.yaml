@@ -1,7 +1,8 @@
 services:
   - type: web
     name: studygrind
-    env: python
+    runtime: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
@@ -9,3 +10,5 @@ services:
         generateValue: true
       - key: RENDER
         value: true
+      - key: PYTHON_VERSION
+        value: 3.9.0
