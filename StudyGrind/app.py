@@ -25,7 +25,13 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=31)
 
 # Configuration
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'studygrind.db')
+if os.environ.get('RENDER'):
+    # On Render
+    os.makedirs(os.path.join(basedir, 'data'), exist_ok=True)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'data', 'studygrind.db')
+else:
+    # Local development
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'studygrind.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB
@@ -920,3 +926,4 @@ if __name__ == '__main__':
     if os.environ.get('RENDER') != 'true':
 
         app.run(debug=True, port=5000)
+
