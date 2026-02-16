@@ -302,6 +302,70 @@ def init_db():
             print("  Teacher: teacher@studygrind.com / teacher123")
             print("  Student: student@studygrind.com / student123")
 
+# THIS IS THE CRITICAL PART - RUNS WHEN MODULE LOADS (FOR RENDER)
+print("🚀 Starting StudyGrind application...")
+with app.app_context():
+    print("📊 Creating/verifying database tables...")
+    db.create_all()
+    create_upload_dirs()
+    print("✅ Database tables ready!")
+    
+    # Create default users if needed
+    if not User.query.first():
+        print("👥 Creating default users...")
+        teacher = User(
+            email='teacher@studygrind.com',
+            password=generate_password_hash('teacher123'),
+            name='Professor Smith',
+            role='teacher'
+        )
+        
+        student = User(
+            email='student@studygrind.com',
+            password=generate_password_hash('student123'),
+            name='John Student',
+            role='student'
+        )
+        
+        db.session.add(teacher)
+        db.session.add(student)
+        db.session.commit()
+        print("✅ Default users created!")
+    else:
+        print("👥 Users already exist, skipping default creation")
+
+with app.app_context():
+    print("=" * 50)
+    print("Initializing database on startup...")
+    print("=" * 50)
+    db.create_all()
+    create_upload_dirs()
+    print("Database tables created/verified!")
+    
+    # Create default users if none exist
+    if not User.query.first():
+        print("No users found, creating default users...")
+        teacher = User(
+            email='teacher@studygrind.com',
+            password=generate_password_hash('teacher123'),
+            name='Professor Smith',
+            role='teacher'
+        )
+        
+        student = User(
+            email='student@studygrind.com',
+            password=generate_password_hash('student123'),
+            name='John Student',
+            role='student'
+        )
+        
+        db.session.add(teacher)
+        db.session.add(student)
+        db.session.commit()
+        print("Default users created!")
+    else:
+        print("Users already exist, skipping default user creation")
+
 # Routes
 @app.route('/')
 def index():
@@ -908,13 +972,6 @@ def internal_error(error):
 def unauthorized(error):
     return jsonify({'error': 'Unauthorized'}), 401
 
-if os.environ.get('RENDER'):
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'data', 'studygrind.db')
-    # Creates data directory
-    os.makedirs(os.path.join(basedir, 'data'), exist_ok=True)
-    os.makedirs(os.path.join(basedir, 'uploads'), exist_ok=True)
-
 # Run the application
 if __name__ == '__main__':
     # Create necessary directories
@@ -936,5 +993,3 @@ if __name__ == '__main__':
     # Only run in debug mode locally
     if os.environ.get('RENDER') != 'true':
         app.run(debug=True, host='0.0.0.0', port=5000)
-
-
