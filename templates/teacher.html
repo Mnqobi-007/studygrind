@@ -1,0 +1,2123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyGrind - Teacher Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2196f3;
+            --primary-light: #64b5f6;
+            --primary-dark: #1976d2;
+            --accent: #ffeb3b;
+            --white: #ffffff;
+            --light: #f8f9fa;
+            --gray: #e0e0e0;
+            --dark-gray: #9e9e9e;
+            --dark: #212121;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --green: #4caf50;
+            --purple: #9c27b0;
+            --orange: #ff9800;
+            --red: #f44336;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        /* Header */
+        .header {
+            background-color: var(--primary);
+            color: var(--white);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo i {
+            color: var(--accent);
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: var(--white);
+        }
+        
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid var(--white);
+            color: var(--white);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .logout-btn:hover {
+            background-color: var(--white);
+            color: var(--primary);
+        }
+        
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            min-height: calc(100vh - 72px);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background-color: var(--white);
+            border-right: 1px solid var(--gray);
+            padding: 1.5rem 0;
+        }
+        
+        .nav-item {
+            padding: 1rem 1.5rem;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--dark);
+        }
+        
+        .nav-item:hover {
+            background-color: var(--light);
+            border-left: 4px solid var(--primary-light);
+        }
+        
+        .nav-item.active {
+            background-color: var(--primary-light);
+            color: var(--white);
+            border-left: 4px solid var(--primary);
+            font-weight: 600;
+        }
+        
+        .nav-item i {
+            font-size: 1.2rem;
+            width: 24px;
+        }
+        
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .content-title {
+            font-size: 1.8rem;
+            color: var(--primary);
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        
+        .stat-card {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--white);
+        }
+        
+        .stat-info h3 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 0.2rem;
+        }
+        
+        .stat-info p {
+            color: var(--dark-gray);
+            font-size: 0.9rem;
+        }
+        
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--white);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .btn-success {
+            background-color: var(--green);
+            color: var(--white);
+        }
+        
+        .btn-success:hover {
+            background-color: #388e3c;
+        }
+        
+        .btn-warning {
+            background-color: var(--orange);
+            color: var(--white);
+        }
+        
+        .btn-warning:hover {
+            background-color: #f57c00;
+        }
+        
+        .btn-danger {
+            background-color: var(--red);
+            color: var(--white);
+        }
+        
+        .btn-danger:hover {
+            background-color: #d32f2f;
+        }
+        
+        .btn-secondary {
+            background-color: var(--gray);
+            color: var(--dark);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--dark-gray);
+        }
+        
+        /* Notes Grid */
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        
+        .note-card {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            border-top: 5px solid var(--primary-light);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .note-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+        
+        .note-subject {
+            display: inline-block;
+            background-color: #e3f2fd;
+            color: var(--dark);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .note-content {
+            flex: 1;
+            color: var(--dark-gray);
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .note-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--gray);
+        }
+        
+        .note-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* Tables */
+        .table-container {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background-color: #f5f5f5;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--dark);
+            border-bottom: 2px solid var(--gray);
+        }
+        
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray);
+        }
+        
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        /* Alert Messages */
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        /* Loading States */
+        .loading-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--dark-gray);
+        }
+        
+        .loading-state i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            animation: spin 1s linear infinite;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--dark-gray);
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--gray);
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: var(--white);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            background-color: var(--primary);
+            color: var(--white);
+            padding: 1.5rem;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--white);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .modal-body {
+            padding: 2rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1px solid var(--gray);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+        }
+        
+        .form-textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        /* File Upload */
+        .file-upload {
+            border: 2px dashed var(--gray);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .file-upload:hover {
+            border-color: var(--primary-light);
+            background-color: #f5f9ff;
+        }
+        
+        .file-upload i {
+            font-size: 3rem;
+            color: var(--dark-gray);
+            margin-bottom: 1rem;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--gray);
+                padding: 1rem 0;
+            }
+            
+            .nav-item {
+                display: inline-flex;
+                margin-right: 10px;
+                margin-bottom: 0;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .notes-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        /* Hidden class */
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Grade Badges */
+        .grade-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .grade-excellent {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .grade-good {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .grade-poor {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-graduation-cap"></i>
+                <span>StudyGrind Teacher</span>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">T</div>
+                <div>
+                    <div style="font-weight: 600;" id="userName">Teacher</div>
+                    <div style="font-size: 0.85rem; color: rgba(255,255,255,0.9);" id="userEmail"></div>
+                </div>
+                <button class="logout-btn" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="nav-list">
+                <div class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" data-section="notes">
+                    <i class="fas fa-sticky-note"></i>
+                    <span>My Notes</span>
+                </div>
+                <div class="nav-item" data-section="textbooks">
+                    <i class="fas fa-book"></i>
+                    <span>Textbooks</span>
+                </div>
+                <div class="nav-item" data-section="resources">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Resources</span>
+                </div>
+                <div class="nav-item" data-section="assignments">
+                    <i class="fas fa-tasks"></i>
+                    <span>Assignments</span>
+                </div>
+                <div class="nav-item" data-section="students">
+                    <i class="fas fa-users"></i>
+                    <span>Students</span>
+                </div>
+                <div class="nav-item" data-section="calendar">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Calendar</span>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Content Area -->
+        <section class="content-area">
+            <!-- Alert Messages -->
+            <div class="alert alert-error" id="errorAlert">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="errorMessage"></span>
+            </div>
+            
+            <div class="alert alert-success" id="successAlert">
+                <i class="fas fa-check-circle"></i>
+                <span id="successMessage"></span>
+            </div>
+            
+            <!-- Dashboard Content -->
+            <div id="dashboardContent" class="content-section">
+                <div class="content-header">
+                    <h1 class="content-title">Teacher Dashboard</h1>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="addNoteBtn">
+                            <i class="fas fa-plus"></i> Create Note
+                        </button>
+                        <button class="btn btn-success" id="addAssignmentBtn">
+                            <i class="fas fa-tasks"></i> Create Assignment
+                        </button>
+                        <button class="btn btn-warning" id="uploadTextbookBtn">
+                            <i class="fas fa-upload"></i> Upload Textbook
+                        </button>
+                        <button class="btn btn-primary" id="uploadResourceBtn">
+                            <i class="fas fa-file-upload"></i> Upload Resource
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Stats -->
+                <div class="stats-grid" id="statsGrid">
+                    <div class="loading-state">
+                        <i class="fas fa-spinner"></i>
+                        <p>Loading dashboard data...</p>
+                    </div>
+                </div>
+                
+                <!-- Recent Notes -->
+                <h2 style="margin: 2rem 0 1rem; color: var(--primary);">Recent Notes</h2>
+                <div class="notes-grid" id="recentNotesGrid">
+                    <div class="loading-state">
+                        <i class="fas fa-spinner"></i>
+                        <p>Loading notes...</p>
+                    </div>
+                </div>
+                
+                <!-- Recent Resources -->
+                <h2 style="margin: 2rem 0 1rem; color: var(--green);">Recent Resources</h2>
+                <div class="notes-grid" id="recentResourcesGrid">
+                    <div class="loading-state">
+                        <i class="fas fa-spinner"></i>
+                        <p>Loading resources...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- My Notes Content -->
+            <div id="notesContent" class="content-section hidden">
+                <div class="content-header">
+                    <h1 class="content-title">My Notes</h1>
+                    <button class="btn btn-primary" id="addNoteBtn2">
+                        <i class="fas fa-plus"></i> Add Note
+                    </button>
+                </div>
+                <div class="notes-grid" id="allNotesGrid">
+                    <div class="loading-state">
+                        <i class="fas fa-spinner"></i>
+                        <p>Loading notes...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Textbooks Content -->
+            <div id="textbooksContent" class="content-section hidden">
+                <div class="content-header">
+                    <h1 class="content-title">Textbooks</h1>
+                    <button class="btn btn-warning" id="uploadTextbookBtn2">
+                        <i class="fas fa-upload"></i> Upload Textbook
+                    </button>
+                </div>
+                <div class="notes-grid" id="textbooksGrid">
+                    <div class="loading-state">
+                        <i class="fas fa-spinner"></i>
+                        <p>Loading textbooks...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Resources Content -->
+            <div id="resourcesContent" class="content-section hidden">
+                <div class="content-header">
+                    <h1 class="content-title">Study Resources</h1>
+                    <button class="btn btn-primary" id="uploadResourceBtn2">
+                        <i class="fas fa-file-upload"></i> Upload Resource
+                    </button>
+                </div>
+                <div class="notes-grid" id="resourcesGrid">
+                    <div class="loading-state">
+                        <i class="fas fa-spinner"></i>
+                        <p>Loading resources...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Assignments Content -->
+            <div id="assignmentsContent" class="content-section hidden">
+                <div class="content-header">
+                    <h1 class="content-title">Assignments</h1>
+                    <button class="btn btn-success" id="addAssignmentBtn2">
+                        <i class="fas fa-plus"></i> Create Assignment
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table id="assignmentsTable">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Subject</th>
+                                <th>Due Date</th>
+                                <th>Submissions</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assignmentsTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 3rem;">
+                                    <div class="loading-state">
+                                        <i class="fas fa-spinner"></i>
+                                        <p>Loading assignments...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Students Content -->
+            <div id="studentsContent" class="content-section hidden">
+                <div class="content-header">
+                    <h1 class="content-title">Students</h1>
+                </div>
+                <div class="table-container">
+                    <table id="studentsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Joined Date</th>
+                                <th>Assignments Submitted</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding: 3rem;">
+                                    <div class="loading-state">
+                                        <i class="fas fa-spinner"></i>
+                                        <p>Loading students...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Calendar Content -->
+            <div id="calendarContent" class="content-section hidden">
+                <div class="content-header">
+                    <h1 class="content-title">Calendar</h1>
+                    <button class="btn btn-primary" id="addEventBtn">
+                        <i class="fas fa-plus"></i> Add Event
+                    </button>
+                </div>
+                <div style="text-align: center; padding: 3rem; color: var(--dark-gray);">
+                    <i class="fas fa-calendar-alt" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                    <h3>Calendar View</h3>
+                    <p>View and manage class schedules, exams, and events.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <!-- Note Modal -->
+    <div class="modal" id="noteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Create Note</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="noteForm">
+                    <div class="form-group">
+                        <label class="form-label">Title *</label>
+                        <input type="text" class="form-input" id="noteTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Subject</label>
+                        <input type="text" class="form-input" id="noteSubject">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Content *</label>
+                        <textarea class="form-textarea" id="noteContent" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Make Public</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="notePublic" style="width: auto;">
+                            <label for="notePublic" style="font-weight: normal;">Share with students</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tags (comma separated)</label>
+                        <input type="text" class="form-input" id="noteTags" placeholder="e.g., important, lecture, exam">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelNoteBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveNoteBtn">Save Note</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Assignment Modal -->
+    <div class="modal" id="assignmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Create Assignment</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="assignmentForm">
+                    <div class="form-group">
+                        <label class="form-label">Title *</label>
+                        <input type="text" class="form-input" id="assignmentTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Subject</label>
+                        <input type="text" class="form-input" id="assignmentSubject">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-textarea" id="assignmentDescription"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Instructions</label>
+                        <textarea class="form-textarea" id="assignmentInstructions"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Max Score</label>
+                        <input type="number" class="form-input" id="assignmentMaxScore" value="100" min="0" max="1000">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Due Date *</label>
+                        <input type="datetime-local" class="form-input" id="assignmentDueDate" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelAssignmentBtn">Cancel</button>
+                        <button type="submit" class="btn btn-success" id="saveAssignmentBtn">Create Assignment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Textbook Upload Modal -->
+    <div class="modal" id="textbookModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Upload Textbook</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="textbookForm">
+                    <div class="form-group">
+                        <label class="form-label">Title *</label>
+                        <input type="text" class="form-input" id="textbookTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Author</label>
+                        <input type="text" class="form-input" id="textbookAuthor">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Subject</label>
+                        <input type="text" class="form-input" id="textbookSubject">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-textarea" id="textbookDescription"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">File *</label>
+                        <div class="file-upload" id="textbookFileUpload">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Click to upload textbook file</p>
+                            <p style="font-size: 0.9rem; color: var(--dark-gray);">PDF, DOC, PPT, TXT, Images, Videos</p>
+                            <input type="file" class="file-input" id="textbookFile" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov">
+                        </div>
+                        <div id="textbookFileName" style="margin-top: 10px; font-size: 0.9rem; color: var(--dark);"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelTextbookBtn">Cancel</button>
+                        <button type="submit" class="btn btn-warning" id="saveTextbookBtn">Upload Textbook</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Resource Upload Modal -->
+    <div class="modal" id="resourceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Upload Resource</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="resourceForm">
+                    <div class="form-group">
+                        <label class="form-label">Title *</label>
+                        <input type="text" class="form-input" id="resourceTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Resource Type</label>
+                        <select class="form-select" id="resourceType">
+                            <option value="lecture">Lecture Notes</option>
+                            <option value="assignment">Assignment</option>
+                            <option value="practice_test">Practice Test</option>
+                            <option value="video">Video</option>
+                            <option value="other">Other Resource</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Subject</label>
+                        <input type="text" class="form-input" id="resourceSubject">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-textarea" id="resourceDescription"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">File *</label>
+                        <div class="file-upload" id="resourceFileUpload">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Click to upload resource file</p>
+                            <p style="font-size: 0.9rem; color: var(--dark-gray);">PDF, DOC, PPT, TXT, Images, Videos</p>
+                            <input type="file" class="file-input" id="resourceFile" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif,.mp4,.avi,.mov">
+                        </div>
+                        <div id="resourceFileName" style="margin-top: 10px; font-size: 0.9rem; color: var(--dark);"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelResourceBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveResourceBtn">Upload Resource</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Submissions Modal -->
+    <div class="modal" id="submissionsModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Assignment Submissions</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h4 id="submissionsAssignmentTitle" style="margin-bottom: 1.5rem;"></h4>
+                <div class="table-container">
+                    <table id="submissionsTable">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Submitted At</th>
+                                <th>Grade</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="submissionsTableBody">
+                            <!-- Submissions will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Grade Submission Modal -->
+    <div class="modal" id="gradeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Grade Submission</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="gradeForm">
+                    <div class="form-group">
+                        <label class="form-label">Student</label>
+                        <input type="text" class="form-input" id="gradeStudentName" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Submission Content</label>
+                        <textarea class="form-textarea" id="gradeSubmissionContent" readonly style="height: 150px;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Grade (out of <span id="maxGrade">100</span>)</label>
+                        <input type="number" class="form-input" id="gradeScore" min="0" max="100" step="0.5" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Feedback</label>
+                        <textarea class="form-textarea" id="gradeFeedback" placeholder="Provide feedback to the student..."></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelGradeBtn">Cancel</button>
+                        <button type="submit" class="btn btn-success" id="saveGradeBtn">Save Grade</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        
+        // App State
+        let currentSection = 'dashboard';
+        let currentNoteId = null;
+        let currentAssignmentId = null;
+        let currentSubmissionId = null;
+        let currentAssignmentMaxScore = 100;
+        let currentUser = null;
+        
+        // DOM Elements
+        const logoutBtn = document.getElementById('logoutBtn');
+        const errorAlert = document.getElementById('errorAlert');
+        const successAlert = document.getElementById('successAlert');
+        const navItems = document.querySelectorAll('.nav-item');
+        const contentSections = document.querySelectorAll('.content-section');
+        const modals = document.querySelectorAll('.modal');
+        const closeModalBtns = document.querySelectorAll('.close-modal');
+        
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            hideAlerts();
+            
+            if (type === 'error') {
+                errorAlert.querySelector('span').textContent = message;
+                errorAlert.style.display = 'flex';
+            } else {
+                successAlert.querySelector('span').textContent = message;
+                successAlert.style.display = 'flex';
+                
+                setTimeout(() => {
+                    successAlert.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        function hideAlerts() {
+            errorAlert.style.display = 'none';
+            successAlert.style.display = 'none';
+        }
+        
+        // Show/hide modal
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+        
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Switch section
+        function switchSection(sectionId) {
+            // Update active nav item
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.section === sectionId) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Show/hide content sections
+            contentSections.forEach(section => {
+                section.classList.add('hidden');
+                if (section.id === sectionId + 'Content') {
+                    section.classList.remove('hidden');
+                }
+            });
+            
+            currentSection = sectionId;
+            
+            // Load section data
+            loadSectionData(sectionId);
+        }
+        
+        // Load section data
+        async function loadSectionData(sectionId) {
+            switch(sectionId) {
+                case 'dashboard':
+                    await loadDashboardData();
+                    break;
+                case 'notes':
+                    await loadMyNotes();
+                    break;
+                case 'textbooks':
+                    await loadTextbooks();
+                    break;
+                case 'resources':
+                    await loadResources();
+                    break;
+                case 'assignments':
+                    await loadAssignments();
+                    break;
+                case 'students':
+                    await loadStudents();
+                    break;
+            }
+        }
+        
+        // API request helper
+        async function apiRequest(endpoint, method = 'GET', data = null, isFormData = false) {
+            try {
+                const options = {
+                    method,
+                    credentials: 'include'
+                };
+                
+                if (data && !isFormData) {
+                    options.headers = {
+                        'Content-Type': 'application/json',
+                    };
+                    options.body = JSON.stringify(data);
+                } else if (data && isFormData) {
+                    options.body = data;
+                }
+                
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return null;
+                }
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Request failed');
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                showAlert(error.message);
+                throw error;
+            }
+        }
+        
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                const data = await apiRequest('/dashboard-data');
+                if (!data) return;
+                
+                // Update stats
+                const statsGrid = document.getElementById('statsGrid');
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background-color: var(--primary);">
+                            <i class="fas fa-sticky-note"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>${data.stats.notes}</h3>
+                            <p>My Notes</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background-color: var(--green);">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>${data.stats.textbooks}</h3>
+                            <p>Textbooks</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background-color: var(--purple);">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>${data.stats.resources}</h3>
+                            <p>Resources</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background-color: var(--orange);">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>${data.stats.students}</h3>
+                            <p>Students</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background-color: var(--red);">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>${data.stats.assignments}</h3>
+                            <p>Assignments</p>
+                        </div>
+                    </div>
+                `;
+                
+                // Update recent notes
+                const recentNotesGrid = document.getElementById('recentNotesGrid');
+                if (data.recent_notes && data.recent_notes.length > 0) {
+                    recentNotesGrid.innerHTML = data.recent_notes.map(note => createNoteCard(note)).join('');
+                } else {
+                    recentNotesGrid.innerHTML = '<div class="empty-state"><i class="fas fa-sticky-note"></i><h3>No notes yet</h3><p>Create your first note to get started</p></div>';
+                }
+                
+                // Update recent resources
+                const recentResourcesGrid = document.getElementById('recentResourcesGrid');
+                if (data.recent_resources && data.recent_resources.length > 0) {
+                    recentResourcesGrid.innerHTML = data.recent_resources.map(resource => createResourceCard(resource)).join('');
+                } else {
+                    recentResourcesGrid.innerHTML = '<div class="empty-state"><i class="fas fa-file-alt"></i><h3>No resources yet</h3><p>Upload your first resource</p></div>';
+                }
+                
+                // Add event listeners
+                addNoteEventListeners();
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+        
+        // Load my notes
+        async function loadMyNotes() {
+            try {
+                const data = await apiRequest('/notes');
+                if (!data) return;
+                
+                const notesGrid = document.getElementById('allNotesGrid');
+                if (data.notes && data.notes.length > 0) {
+                    notesGrid.innerHTML = data.notes.map(note => createNoteCard(note)).join('');
+                } else {
+                    notesGrid.innerHTML = '<div class="empty-state"><i class="fas fa-sticky-note"></i><h3>No notes yet</h3><p>Create your first note to get started</p></div>';
+                }
+                
+                // Add event listeners
+                addNoteEventListeners();
+                
+            } catch (error) {
+                console.error('Error loading notes:', error);
+            }
+        }
+        
+        // Load textbooks
+        async function loadTextbooks() {
+            try {
+                const data = await apiRequest('/textbooks');
+                if (!data) return;
+                
+                const textbooksGrid = document.getElementById('textbooksGrid');
+                if (data.textbooks && data.textbooks.length > 0) {
+                    textbooksGrid.innerHTML = data.textbooks.map(textbook => createTextbookCard(textbook)).join('');
+                } else {
+                    textbooksGrid.innerHTML = '<div class="empty-state"><i class="fas fa-book"></i><h3>No textbooks yet</h3><p>Upload your first textbook</p></div>';
+                }
+                
+            } catch (error) {
+                console.error('Error loading textbooks:', error);
+            }
+        }
+        
+        // Load resources
+        async function loadResources() {
+            try {
+                const data = await apiRequest('/resources');
+                if (!data) return;
+                
+                const resourcesGrid = document.getElementById('resourcesGrid');
+                if (data.resources && data.resources.length > 0) {
+                    resourcesGrid.innerHTML = data.resources.map(resource => createResourceCard(resource)).join('');
+                } else {
+                    resourcesGrid.innerHTML = '<div class="empty-state"><i class="fas fa-file-alt"></i><h3>No resources yet</h3><p>Upload your first resource</p></div>';
+                }
+                
+            } catch (error) {
+                console.error('Error loading resources:', error);
+            }
+        }
+        
+        // Load assignments
+        async function loadAssignments() {
+            try {
+                const data = await apiRequest('/assignments');
+                if (!data) return;
+                
+                const assignmentsTableBody = document.getElementById('assignmentsTableBody');
+                if (data.assignments && data.assignments.length > 0) {
+                    assignmentsTableBody.innerHTML = data.assignments.map(assignment => createAssignmentRow(assignment)).join('');
+                } else {
+                    assignmentsTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 3rem;">
+                                <div class="empty-state">
+                                    <i class="fas fa-tasks"></i>
+                                    <h3>No assignments yet</h3>
+                                    <p>Create your first assignment</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                // Add event listeners
+                addAssignmentEventListeners();
+                
+            } catch (error) {
+                console.error('Error loading assignments:', error);
+            }
+        }
+        
+        // Load students
+        async function loadStudents() {
+            try {
+                const data = await apiRequest('/students');
+                if (!data) return;
+                
+                const studentsTableBody = document.getElementById('studentsTableBody');
+                if (data.students && data.students.length > 0) {
+                    // For now, just show basic student info
+                    // In a real app, you'd fetch submission counts
+                    studentsTableBody.innerHTML = data.students.map(student => createStudentRow(student)).join('');
+                } else {
+                    studentsTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 3rem;">
+                                <div class="empty-state">
+                                    <i class="fas fa-users"></i>
+                                    <h3>No students enrolled</h3>
+                                    <p>Students will appear here once they register</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Error loading students:', error);
+            }
+        }
+        
+        // Create note card
+        function createNoteCard(note) {
+            const badgeColor = note.is_public ? 'var(--green)' : 'var(--primary)';
+            const badgeText = note.is_public ? 'Public' : 'Private';
+            
+            return `
+                <div class="note-card" data-id="${note.id}">
+                    <div class="note-header">
+                        <div>
+                            <h3 class="note-title">${escapeHtml(note.title)}</h3>
+                            <span class="note-subject">${note.subject || 'General'}</span>
+                        </div>
+                        <div class="note-actions">
+                            <button class="btn btn-primary edit-note-btn" data-id="${note.id}">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-danger delete-note-btn" data-id="${note.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="note-content">
+                        ${escapeHtml(note.content.substring(0, 200))}${note.content.length > 200 ? '...' : ''}
+                    </div>
+                    <div class="note-footer">
+                        <div style="color: ${badgeColor}; font-weight: 600;">
+                            ${badgeText}
+                        </div>
+                        <div style="color: var(--dark-gray); font-size: 0.9rem;">
+                            ${formatDate(note.updated_at)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Create textbook card
+        function createTextbookCard(textbook) {
+            const fileSize = textbook.file_size ? formatFileSize(textbook.file_size) : 'Unknown size';
+            
+            return `
+                <div class="note-card" data-id="${textbook.id}">
+                    <div class="note-header">
+                        <div>
+                            <h3 class="note-title">${escapeHtml(textbook.title)}</h3>
+                            <span class="note-subject">${textbook.subject || 'General'}</span>
+                        </div>
+                        <div class="note-actions">
+                            <button class="btn btn-danger delete-textbook-btn" data-id="${textbook.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="note-content">
+                        <p><strong>Author:</strong> ${textbook.author || 'Unknown'}</p>
+                        <p>${textbook.description ? escapeHtml(textbook.description.substring(0, 150)) + (textbook.description.length > 150 ? '...' : '') : 'No description available.'}</p>
+                    </div>
+                    <div class="note-footer">
+                        <div style="color: var(--dark-gray); font-size: 0.9rem;">
+                            <i class="fas fa-file"></i> ${fileSize}
+                        </div>
+                        <button class="btn btn-primary download-btn" data-type="textbooks" data-filename="${textbook.filename}">
+                            <i class="fas fa-download"></i> Download
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Create resource card
+        function createResourceCard(resource) {
+            const fileSize = resource.file_size ? formatFileSize(resource.file_size) : 'Unknown size';
+            const typeLabels = {
+                'lecture': 'Lecture Notes',
+                'assignment': 'Assignment',
+                'practice_test': 'Practice Test',
+                'video': 'Video',
+                'other': 'Resource'
+            };
+            
+            return `
+                <div class="note-card" data-id="${resource.id}">
+                    <div class="note-header">
+                        <div>
+                            <h3 class="note-title">${escapeHtml(resource.title)}</h3>
+                            <span class="note-subject">${typeLabels[resource.resource_type] || 'Resource'}</span>
+                        </div>
+                        <div class="note-actions">
+                            <button class="btn btn-danger delete-resource-btn" data-id="${resource.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="note-content">
+                        <p><strong>Subject:</strong> ${resource.subject || 'General'}</p>
+                        <p>${resource.description ? escapeHtml(resource.description.substring(0, 150)) + (resource.description.length > 150 ? '...' : '') : 'No description available.'}</p>
+                    </div>
+                    <div class="note-footer">
+                        <div style="color: var(--dark-gray); font-size: 0.9rem;">
+                            <i class="fas fa-file"></i> ${fileSize}
+                        </div>
+                        <button class="btn btn-primary download-btn" data-type="resources" data-filename="${resource.filename}">
+                            <i class="fas fa-download"></i> Download
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Create assignment row
+        function createAssignmentRow(assignment) {
+            const dueDate = new Date(assignment.due_date);
+            const now = new Date();
+            const daysRemaining = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+            
+            let statusColor = 'var(--primary)';
+            let statusText = `${daysRemaining} days left`;
+            
+            if (daysRemaining < 0) {
+                statusColor = 'var(--red)';
+                statusText = 'Overdue';
+            } else if (daysRemaining === 0) {
+                statusColor = 'var(--orange)';
+                statusText = 'Due today';
+            } else if (daysRemaining <= 7) {
+                statusColor = 'var(--orange)';
+            }
+            
+            return `
+                <tr>
+                    <td>${escapeHtml(assignment.title)}</td>
+                    <td>${assignment.subject || 'General'}</td>
+                    <td>
+                        <div>${formatDate(assignment.due_date)}</div>
+                        <div style="color: ${statusColor}; font-size: 0.9rem;">${statusText}</div>
+                    </td>
+                    <td>
+                        <button class="btn btn-primary view-submissions-btn" data-id="${assignment.id}">
+                            <i class="fas fa-eye"></i> View Submissions
+                        </button>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-danger delete-assignment-btn" data-id="${assignment.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        // Create student row
+        function createStudentRow(student) {
+            return `
+                <tr>
+                    <td>${escapeHtml(student.name)}</td>
+                    <td>${student.email}</td>
+                    <td>${formatDate(student.created_at)}</td>
+                    <td>
+                        <span class="grade-badge grade-good">0 submitted</span>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        // Add note event listeners
+        function addNoteEventListeners() {
+            // Edit note buttons
+            document.querySelectorAll('.edit-note-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const noteId = e.target.closest('button').dataset.id;
+                    await editNote(noteId);
+                });
+            });
+            
+            // Delete note buttons
+            document.querySelectorAll('.delete-note-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const noteId = e.target.closest('button').dataset.id;
+                    if (confirm('Are you sure you want to delete this note?')) {
+                        await deleteNote(noteId);
+                    }
+                });
+            });
+        }
+        
+        // Add assignment event listeners
+        function addAssignmentEventListeners() {
+            // View submissions buttons
+            document.querySelectorAll('.view-submissions-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const assignmentId = e.target.closest('button').dataset.id;
+                    await viewSubmissions(assignmentId);
+                });
+            });
+            
+            // Delete assignment buttons
+            document.querySelectorAll('.delete-assignment-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const assignmentId = e.target.closest('button').dataset.id;
+                    if (confirm('Are you sure you want to delete this assignment?')) {
+                        await deleteAssignment(assignmentId);
+                    }
+                });
+            });
+        }
+        
+        // Edit note
+        async function editNote(noteId) {
+            try {
+                const data = await apiRequest(`/notes/${noteId}`);
+                if (!data) return;
+                
+                currentNoteId = noteId;
+                document.getElementById('noteTitle').value = data.note.title;
+                document.getElementById('noteSubject').value = data.note.subject || '';
+                document.getElementById('noteContent').value = data.note.content;
+                document.getElementById('noteTags').value = data.note.tags || '';
+                document.getElementById('notePublic').checked = data.note.is_public;
+                
+                document.querySelector('#noteModal .modal-title').textContent = 'Edit Note';
+                showModal('noteModal');
+                
+            } catch (error) {
+                console.error('Error loading note:', error);
+            }
+        }
+        
+        // Delete note
+        async function deleteNote(noteId) {
+            try {
+                await apiRequest(`/notes/${noteId}`, 'DELETE');
+                showAlert('Note deleted successfully', 'success');
+                await loadSectionData(currentSection);
+            } catch (error) {
+                console.error('Error deleting note:', error);
+            }
+        }
+        
+        // View submissions
+        async function viewSubmissions(assignmentId) {
+            try {
+                currentAssignmentId = assignmentId;
+                
+                // Get assignment details
+                const assignmentData = await apiRequest(`/assignments/${assignmentId}`);
+                if (!assignmentData) return;
+                
+                document.getElementById('submissionsAssignmentTitle').textContent = 
+                    `Submissions for: ${assignmentData.assignment.title}`;
+                
+                // Get students to display
+                const studentsData = await apiRequest('/students');
+                if (!studentsData) return;
+                
+                // For now, create mock submissions
+                // In a real app, you'd fetch actual submissions from the API
+                const submissionsBody = document.getElementById('submissionsTableBody');
+                submissionsBody.innerHTML = studentsData.students.map(student => `
+                    <tr>
+                        <td>${escapeHtml(student.name)}</td>
+                        <td>Not submitted yet</td>
+                        <td>
+                            <span class="grade-badge grade-poor">Pending</span>
+                        </td>
+                        <td>
+                            <button class="btn btn-secondary" disabled>
+                                <i class="fas fa-graduation-cap"></i> Grade
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+                
+                showModal('submissionsModal');
+                
+            } catch (error) {
+                console.error('Error loading submissions:', error);
+            }
+        }
+        
+        // Delete assignment
+        async function deleteAssignment(assignmentId) {
+            try {
+                await apiRequest(`/assignments/${assignmentId}`, 'DELETE');
+                showAlert('Assignment deleted successfully', 'success');
+                await loadSectionData(currentSection);
+            } catch (error) {
+                console.error('Error deleting assignment:', error);
+            }
+        }
+        
+        // Delete textbook
+        async function deleteTextbook(textbookId) {
+            try {
+                await apiRequest(`/textbooks/${textbookId}`, 'DELETE');
+                showAlert('Textbook deleted successfully', 'success');
+                await loadSectionData(currentSection);
+            } catch (error) {
+                console.error('Error deleting textbook:', error);
+            }
+        }
+        
+        // Delete resource
+        async function deleteResource(resourceId) {
+            try {
+                await apiRequest(`/resources/${resourceId}`, 'DELETE');
+                showAlert('Resource deleted successfully', 'success');
+                await loadSectionData(currentSection);
+            } catch (error) {
+                console.error('Error deleting resource:', error);
+            }
+        }
+        
+        // Download file
+        async function downloadFile(type, filename) {
+            window.open(`${API_BASE}/download/${type}/${filename}`, '_blank');
+        }
+        
+        // Format date
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+        
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Update user info in header
+        function updateUserInfo() {
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.name;
+                document.getElementById('userEmail').textContent = currentUser.email;
+                document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+            }
+        }
+        
+        // Initialize app
+        async function initApp() {
+            // Check authentication
+            try {
+                const response = await fetch(`${API_BASE}/check-auth`, {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                const data = await response.json();
+                if (!data.authenticated) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                currentUser = data.user;
+                updateUserInfo();
+                
+                if (currentUser.role !== 'teacher') {
+                    window.location.href = '/student';
+                    return;
+                }
+                
+            } catch (error) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            // Load initial data
+            await loadDashboardData();
+            
+            // Set up event listeners
+            setupEventListeners();
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            // Navigation
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    switchSection(item.dataset.section);
+                });
+            });
+            
+            // Logout
+            logoutBtn.addEventListener('click', async () => {
+                try {
+                    await apiRequest('/logout', 'POST');
+                    window.location.href = '/login';
+                } catch (error) {
+                    window.location.href = '/login';
+                }
+            });
+            
+            // Note buttons
+            document.getElementById('addNoteBtn').addEventListener('click', () => {
+                currentNoteId = null;
+                document.getElementById('noteForm').reset();
+                document.querySelector('#noteModal .modal-title').textContent = 'Create Note';
+                showModal('noteModal');
+            });
+            
+            document.getElementById('addNoteBtn2').addEventListener('click', () => {
+                currentNoteId = null;
+                document.getElementById('noteForm').reset();
+                document.querySelector('#noteModal .modal-title').textContent = 'Create Note';
+                showModal('noteModal');
+            });
+            
+            // Assignment buttons
+            document.getElementById('addAssignmentBtn').addEventListener('click', () => {
+                currentAssignmentId = null;
+                document.getElementById('assignmentForm').reset();
+                // Set default due date to tomorrow
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                document.getElementById('assignmentDueDate').value = tomorrow.toISOString().slice(0, 16);
+                document.querySelector('#assignmentModal .modal-title').textContent = 'Create Assignment';
+                showModal('assignmentModal');
+            });
+            
+            document.getElementById('addAssignmentBtn2').addEventListener('click', () => {
+                currentAssignmentId = null;
+                document.getElementById('assignmentForm').reset();
+                // Set default due date to tomorrow
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                document.getElementById('assignmentDueDate').value = tomorrow.toISOString().slice(0, 16);
+                document.querySelector('#assignmentModal .modal-title').textContent = 'Create Assignment';
+                showModal('assignmentModal');
+            });
+            
+            // Textbook buttons
+            document.getElementById('uploadTextbookBtn').addEventListener('click', () => {
+                document.getElementById('textbookForm').reset();
+                document.getElementById('textbookFileName').textContent = '';
+                showModal('textbookModal');
+            });
+            
+            document.getElementById('uploadTextbookBtn2').addEventListener('click', () => {
+                document.getElementById('textbookForm').reset();
+                document.getElementById('textbookFileName').textContent = '';
+                showModal('textbookModal');
+            });
+            
+            // Resource buttons
+            document.getElementById('uploadResourceBtn').addEventListener('click', () => {
+                document.getElementById('resourceForm').reset();
+                document.getElementById('resourceFileName').textContent = '';
+                showModal('resourceModal');
+            });
+            
+            document.getElementById('uploadResourceBtn2').addEventListener('click', () => {
+                document.getElementById('resourceForm').reset();
+                document.getElementById('resourceFileName').textContent = '';
+                showModal('resourceModal');
+            });
+            
+            // File upload handlers
+            document.getElementById('textbookFileUpload').addEventListener('click', () => {
+                document.getElementById('textbookFile').click();
+            });
+            
+            document.getElementById('textbookFile').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    document.getElementById('textbookFileName').textContent = `Selected: ${file.name} (${formatFileSize(file.size)})`;
+                }
+            });
+            
+            document.getElementById('resourceFileUpload').addEventListener('click', () => {
+                document.getElementById('resourceFile').click();
+            });
+            
+            document.getElementById('resourceFile').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    document.getElementById('resourceFileName').textContent = `Selected: ${file.name} (${formatFileSize(file.size)})`;
+                }
+            });
+            
+            // Note form submission
+            document.getElementById('noteForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const noteData = {
+                    title: document.getElementById('noteTitle').value,
+                    subject: document.getElementById('noteSubject').value,
+                    content: document.getElementById('noteContent').value,
+                    tags: document.getElementById('noteTags').value,
+                    is_public: document.getElementById('notePublic').checked
+                };
+                
+                try {
+                    if (currentNoteId) {
+                        // Update existing note
+                        await apiRequest(`/notes/${currentNoteId}`, 'PUT', noteData);
+                        showAlert('Note updated successfully', 'success');
+                    } else {
+                        // Create new note
+                        await apiRequest('/notes', 'POST', noteData);
+                        showAlert('Note created successfully', 'success');
+                    }
+                    
+                    hideModal('noteModal');
+                    await loadSectionData(currentSection);
+                    
+                } catch (error) {
+                    console.error('Error saving note:', error);
+                }
+            });
+            
+            // Assignment form submission
+            document.getElementById('assignmentForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const dueDate = new Date(document.getElementById('assignmentDueDate').value);
+                
+                const assignmentData = {
+                    title: document.getElementById('assignmentTitle').value,
+                    subject: document.getElementById('assignmentSubject').value,
+                    description: document.getElementById('assignmentDescription').value,
+                    instructions: document.getElementById('assignmentInstructions').value,
+                    max_score: parseInt(document.getElementById('assignmentMaxScore').value),
+                    due_date: dueDate.toISOString()
+                };
+                
+                try {
+                    await apiRequest('/assignments', 'POST', assignmentData);
+                    
+                    showAlert('Assignment created successfully', 'success');
+                    hideModal('assignmentModal');
+                    
+                    if (currentSection === 'assignments') {
+                        await loadSectionData(currentSection);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error creating assignment:', error);
+                }
+            });
+            
+            // Textbook form submission
+            document.getElementById('textbookForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const fileInput = document.getElementById('textbookFile');
+                if (!fileInput.files[0]) {
+                    showAlert('Please select a file to upload');
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('title', document.getElementById('textbookTitle').value);
+                formData.append('author', document.getElementById('textbookAuthor').value);
+                formData.append('subject', document.getElementById('textbookSubject').value);
+                formData.append('description', document.getElementById('textbookDescription').value);
+                formData.append('file', fileInput.files[0]);
+                
+                try {
+                    await apiRequest('/textbooks', 'POST', formData, true);
+                    
+                    showAlert('Textbook uploaded successfully', 'success');
+                    hideModal('textbookModal');
+                    
+                    if (currentSection === 'textbooks') {
+                        await loadSectionData(currentSection);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error uploading textbook:', error);
+                }
+            });
+            
+            // Resource form submission
+            document.getElementById('resourceForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const fileInput = document.getElementById('resourceFile');
+                if (!fileInput.files[0]) {
+                    showAlert('Please select a file to upload');
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('title', document.getElementById('resourceTitle').value);
+                formData.append('resource_type', document.getElementById('resourceType').value);
+                formData.append('subject', document.getElementById('resourceSubject').value);
+                formData.append('description', document.getElementById('resourceDescription').value);
+                formData.append('file', fileInput.files[0]);
+                
+                try {
+                    await apiRequest('/resources', 'POST', formData, true);
+                    
+                    showAlert('Resource uploaded successfully', 'success');
+                    hideModal('resourceModal');
+                    
+                    if (currentSection === 'resources') {
+                        await loadSectionData(currentSection);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error uploading resource:', error);
+                }
+            });
+            
+            // Cancel buttons
+            document.getElementById('cancelNoteBtn').addEventListener('click', () => {
+                hideModal('noteModal');
+            });
+            
+            document.getElementById('cancelAssignmentBtn').addEventListener('click', () => {
+                hideModal('assignmentModal');
+            });
+            
+            document.getElementById('cancelTextbookBtn').addEventListener('click', () => {
+                hideModal('textbookModal');
+            });
+            
+            document.getElementById('cancelResourceBtn').addEventListener('click', () => {
+                hideModal('resourceModal');
+            });
+            
+            // Close modal buttons
+            closeModalBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    btn.closest('.modal').style.display = 'none';
+                });
+            });
+            
+            // Close modals when clicking outside
+            modals.forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Delegated event listeners
+            document.addEventListener('click', (e) => {
+                // Download buttons
+                if (e.target.closest('.download-btn')) {
+                    const btn = e.target.closest('.download-btn');
+                    const type = btn.dataset.type;
+                    const filename = btn.dataset.filename;
+                    downloadFile(type, filename);
+                }
+                
+                // Delete textbook buttons
+                if (e.target.closest('.delete-textbook-btn')) {
+                    const btn = e.target.closest('.delete-textbook-btn');
+                    const textbookId = btn.dataset.id;
+                    if (confirm('Are you sure you want to delete this textbook?')) {
+                        deleteTextbook(textbookId);
+                    }
+                }
+                
+                // Delete resource buttons
+                if (e.target.closest('.delete-resource-btn')) {
+                    const btn = e.target.closest('.delete-resource-btn');
+                    const resourceId = btn.dataset.id;
+                    if (confirm('Are you sure you want to delete this resource?')) {
+                        deleteResource(resourceId);
+                    }
+                }
+            });
+        }
+        
+        // Start the app
+        initApp();
+    </script>
+</body>
+
+</html>
