@@ -45,8 +45,12 @@ ALLOWED_EXTENSIONS = {
 # Initialize extensions
 db = SQLAlchemy(app)
 
-# CORS configuration - allow all origins for now (you can restrict later)
-CORS(app, supports_credentials=True, origins=["http://localhost:5000", "http://127.0.0.1:5000"])
+# CORS configuration - updated for Render
+CORS(app, supports_credentials=True, origins=[
+    "http://localhost:5000", 
+    "http://127.0.0.1:5000",
+    "https://studygrind-1.onrender.com"
+])
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -273,7 +277,7 @@ def create_upload_dirs():
         dir_path = os.path.join(app.config['UPLOAD_FOLDER'], dir_name)
         os.makedirs(dir_path, exist_ok=True)
 
-# Initialize database
+# Initialize database function
 def init_db():
     with app.app_context():
         db.create_all()
@@ -302,7 +306,7 @@ def init_db():
             print("  Teacher: teacher@studygrind.com / teacher123")
             print("  Student: student@studygrind.com / student123")
 
-# THIS IS THE CRITICAL PART - RUNS WHEN MODULE LOADS (FOR RENDER)
+# SINGLE initialization block - runs when module loads (for Render)
 print("🚀 Starting StudyGrind application...")
 with app.app_context():
     print("📊 Creating/verifying database tables...")
@@ -333,38 +337,6 @@ with app.app_context():
         print("✅ Default users created!")
     else:
         print("👥 Users already exist, skipping default creation")
-
-with app.app_context():
-    print("=" * 50)
-    print("Initializing database on startup...")
-    print("=" * 50)
-    db.create_all()
-    create_upload_dirs()
-    print("Database tables created/verified!")
-    
-    # Create default users if none exist
-    if not User.query.first():
-        print("No users found, creating default users...")
-        teacher = User(
-            email='teacher@studygrind.com',
-            password=generate_password_hash('teacher123'),
-            name='Professor Smith',
-            role='teacher'
-        )
-        
-        student = User(
-            email='student@studygrind.com',
-            password=generate_password_hash('student123'),
-            name='John Student',
-            role='student'
-        )
-        
-        db.session.add(teacher)
-        db.session.add(student)
-        db.session.commit()
-        print("Default users created!")
-    else:
-        print("Users already exist, skipping default user creation")
 
 # Routes
 @app.route('/')
