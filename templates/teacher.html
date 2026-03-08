@@ -1281,15 +1281,23 @@
         const modals = document.querySelectorAll('.modal');
         const closeModalBtns = document.querySelectorAll('.close-modal');
         
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
         // Show alert message
         function showAlert(message, type = 'error') {
             hideAlerts();
             
             if (type === 'error') {
-                errorAlert.querySelector('span').textContent = message;
+                document.getElementById('errorMessage').textContent = message;
                 errorAlert.style.display = 'flex';
             } else {
-                successAlert.querySelector('span').textContent = message;
+                document.getElementById('successMessage').textContent = message;
                 successAlert.style.display = 'flex';
                 
                 setTimeout(() => {
@@ -1399,6 +1407,65 @@
                 showAlert(error.message);
                 throw error;
             }
+        }
+        
+        // View note in detail
+        function viewNote(noteId) {
+            fetch(`${API_BASE}/notes/${noteId}`, {
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.note) {
+                    const note = data.note;
+                    
+                    // Create a modal for viewing the note
+                    const viewModal = document.createElement('div');
+                    viewModal.className = 'modal';
+                    viewModal.style.display = 'flex';
+                    viewModal.id = 'viewNoteModal';
+                    
+                    viewModal.innerHTML = `
+                        <div class="modal-content" style="max-width: 700px;">
+                            <div class="modal-header">
+                                <h3 class="modal-title">${escapeHtml(note.title)}</h3>
+                                <button class="close-modal" onclick="document.getElementById('viewNoteModal').remove()">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <div style="margin-bottom: 1rem;">
+                                    <span class="note-subject">${note.subject || 'General'}</span>
+                                    ${note.tags ? note.tags.split(',').map(tag => 
+                                        `<span style="display: inline-block; background: #e0e0e0; padding: 2px 8px; border-radius: 12px; margin-left: 8px; font-size: 0.8rem;">${escapeHtml(tag.trim())}</span>`
+                                    ).join('') : ''}
+                                </div>
+                                <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; white-space: pre-wrap; line-height: 1.6; min-height: 200px;">
+                                    ${escapeHtml(note.content)}
+                                </div>
+                                <div style="margin-top: 1rem; color: var(--dark-gray); font-size: 0.9rem; display: flex; justify-content: space-between;">
+                                    <span>Created: ${new Date(note.created_at).toLocaleString()}</span>
+                                    <span>Last updated: ${new Date(note.updated_at).toLocaleString()}</span>
+                                </div>
+                            </div>
+                            <div style="padding: 1rem 2rem; border-top: 1px solid var(--gray); text-align: right;">
+                                <button class="btn btn-primary" onclick="document.getElementById('viewNoteModal').remove()">Close</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(viewModal);
+                    
+                    // Close modal when clicking outside
+                    viewModal.addEventListener('click', (e) => {
+                        if (e.target === viewModal) {
+                            viewModal.remove();
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading note:', error);
+                showAlert('Failed to load note', 'error');
+            });
         }
         
         // Load dashboard data
@@ -1677,8 +1744,6 @@
                 const startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
                 const endDate = new Date(now.getFullYear(), now.getMonth() + 3, 0);
                 
-                console.log('Loading events from', startDate.toISOString(), 'to', endDate.toISOString());
-                
                 const response = await fetch(`${API_BASE}/events?start=${startDate.toISOString()}&end=${endDate.toISOString()}`, {
                     credentials: 'include',
                     headers: {
@@ -1692,7 +1757,6 @@
                 }
                 
                 const data = await response.json();
-                console.log('Events loaded:', data.events);
                 teacherCalendarEvents = data.events || [];
                 
                 // Update dashboard if on dashboard
@@ -1860,8 +1924,11 @@
                             <span class="note-subject">${note.subject || 'General'}</span>
                         </div>
                         <div class="note-actions">
+                            <button class="btn btn-primary view-note-btn" data-id="${note.id}">
+                                <i class="fas fa-eye"></i>
+                            </button>
                             <button class="btn btn-primary edit-note-btn" data-id="${note.id}">
-                                <i class="fas fa-edit"></i> Edit
+                                <i class="fas fa-edit"></i>
                             </button>
                             <button class="btn btn-danger delete-note-btn" data-id="${note.id}">
                                 <i class="fas fa-trash"></i>
@@ -1967,7 +2034,7 @@
                         </div>
                         <div class="note-actions">
                             <button class="btn btn-primary edit-link-btn" data-id="${link.id}">
-                                <i class="fas fa-edit"></i> Edit
+                                <i class="fas fa-edit"></i>
                             </button>
                             <button class="btn btn-danger delete-link-btn" data-id="${link.id}">
                                 <i class="fas fa-trash"></i>
@@ -2045,6 +2112,13 @@
         
         // Add note event listeners
         function addNoteEventListeners() {
+            document.querySelectorAll('.view-note-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const noteId = e.target.closest('button').dataset.id;
+                    viewNote(noteId);
+                });
+            });
+            
             document.querySelectorAll('.edit-note-btn').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const noteId = e.target.closest('button').dataset.id;
@@ -2255,7 +2329,6 @@
         // Edit event
         async function editEvent(eventId) {
             try {
-                console.log('Editing event:', eventId);
                 const response = await fetch(`${API_BASE}/events/${eventId}`, {
                     method: 'GET',
                     credentials: 'include',
@@ -2264,16 +2337,12 @@
                     }
                 });
                 
-                console.log('Response status:', response.status);
-                
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
                     throw new Error(errorData.error || `Failed to load event (Status: ${response.status})`);
                 }
                 
                 const data = await response.json();
-                console.log('Event data received:', data);
-                
                 const event = data.event;
                 
                 currentEventId = event.id;
@@ -2355,13 +2424,6 @@
             const sizes = ['Bytes', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-        
-        // Escape HTML
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
         }
         
         // Update user info in header
