@@ -380,6 +380,126 @@ def save_uploaded_file(file, subdirectory):
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
+# ========== DATABASE INITIALIZATION ==========
+
+def init_db():
+    """Initialize database with sample data only if empty"""
+    try:
+        db.create_all()
+        print("✅ Database tables created/verified")
+        
+        # Only create default users if NO users exist
+        if User.query.count() == 0:
+            print("📝 Creating default users...")
+            teacher = User(
+                email='teacher@studygrind.com',
+                password=generate_password_hash('teacher123'),
+                name='Professor Smith',
+                role='teacher'
+            )
+            
+            student = User(
+                email='student@studygrind.com',
+                password=generate_password_hash('student123'),
+                name='John Student',
+                role='student'
+            )
+            
+            db.session.add(teacher)
+            db.session.add(student)
+            db.session.commit()
+            
+            # Create sample events
+            if Event.query.count() == 0:
+                print("📅 Creating sample events...")
+                now = datetime.utcnow()
+                event1 = Event(
+                    title='Mathematics Class',
+                    description='Weekly mathematics lecture',
+                    event_type='class',
+                    start_date=now + timedelta(days=1, hours=9),
+                    end_date=now + timedelta(days=1, hours=11),
+                    location='Room 101',
+                    color='#2196f3',
+                    created_by=teacher.id
+                )
+                event2 = Event(
+                    title='Physics Exam',
+                    description='Mid-term examination',
+                    event_type='exam',
+                    start_date=now + timedelta(days=7, hours=10),
+                    end_date=now + timedelta(days=7, hours=12),
+                    location='Exam Hall',
+                    color='#f44336',
+                    created_by=teacher.id
+                )
+                event3 = Event(
+                    title='Assignment Due: Essay',
+                    description='Submit your final essay',
+                    event_type='assignment',
+                    start_date=now + timedelta(days=3, hours=23, minutes=59),
+                    end_date=now + timedelta(days=3, hours=23, minutes=59),
+                    location='Online',
+                    color='#ff9800',
+                    created_by=teacher.id
+                )
+                db.session.add_all([event1, event2, event3])
+            
+            # Create sample notes
+            if Note.query.count() == 0:
+                print("📝 Creating sample notes...")
+                sample_note = Note(
+                    title='Welcome to StudyGrind',
+                    content='This is a sample note to get you started! You can create your own notes, view teacher notes, and access study materials.',
+                    subject='Orientation',
+                    user_id=student.id
+                )
+                
+                teacher_note = Note(
+                    title='Introduction to Python Programming',
+                    content='Python is a high-level, interpreted programming language known for its simplicity and readability.',
+                    subject='Computer Science',
+                    user_id=teacher.id,
+                    is_public=True,
+                    is_teacher_note=True
+                )
+                db.session.add_all([sample_note, teacher_note])
+            
+            # Create sample link
+            if Link.query.count() == 0:
+                print("🔗 Creating sample links...")
+                sample_link = Link(
+                    title='Python Official Documentation',
+                    url='https://docs.python.org/3/',
+                    description='Official Python documentation - tutorials, library reference, and more.',
+                    subject='Computer Science',
+                    created_by=teacher.id
+                )
+                db.session.add(sample_link)
+            
+            db.session.commit()
+            print("✅ Database initialized with default users")
+            print("   Teacher: teacher@studygrind.com / teacher123")
+            print("   Student: student@studygrind.com / student123")
+    except Exception as e:
+        print(f"⚠️ Database initialization error: {e}")
+        db.session.rollback()
+
+def create_upload_directories():
+    """Create upload directories if they don't exist"""
+    try:
+        os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'textbooks'), exist_ok=True)
+        os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'resources'), exist_ok=True)
+        os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'submissions'), exist_ok=True)
+        print(f"✅ Upload directories created in {app.config['UPLOAD_FOLDER']}")
+    except Exception as e:
+        print(f"⚠️ Warning: Could not create upload directories: {e}")
+
+# Initialize database and upload directories when the app starts
+with app.app_context():
+    init_db()
+    create_upload_directories()
+
 # ========== API ROUTES ==========
 
 # Authentication Routes
@@ -1411,127 +1531,10 @@ def student_dashboard():
         return redirect('/teacher')
     return render_template('student.html')
 
-# ========== DATABASE INITIALIZATION ==========
-
-def init_db():
-    """Initialize database with sample data only if empty"""
-    with app.app_context():
-        db.create_all()
-        
-        # Only create default users if NO users exist
-        if User.query.count() == 0:
-            teacher = User(
-                email='teacher@studygrind.com',
-                password=generate_password_hash('teacher123'),
-                name='Professor Smith',
-                role='teacher'
-            )
-            
-            student = User(
-                email='student@studygrind.com',
-                password=generate_password_hash('student123'),
-                name='John Student',
-                role='student'
-            )
-            
-            db.session.add(teacher)
-            db.session.add(student)
-            db.session.commit()
-            
-            # Create sample events only if events table is empty
-            if Event.query.count() == 0:
-                now = datetime.utcnow()
-                event1 = Event(
-                    title='Mathematics Class',
-                    description='Weekly mathematics lecture',
-                    event_type='class',
-                    start_date=now + timedelta(days=1, hours=9),
-                    end_date=now + timedelta(days=1, hours=11),
-                    location='Room 101',
-                    color='#2196f3',
-                    created_by=teacher.id
-                )
-                event2 = Event(
-                    title='Physics Exam',
-                    description='Mid-term examination',
-                    event_type='exam',
-                    start_date=now + timedelta(days=7, hours=10),
-                    end_date=now + timedelta(days=7, hours=12),
-                    location='Exam Hall',
-                    color='#f44336',
-                    created_by=teacher.id
-                )
-                event3 = Event(
-                    title='Assignment Due: Essay',
-                    description='Submit your final essay',
-                    event_type='assignment',
-                    start_date=now + timedelta(days=3, hours=23, minutes=59),
-                    end_date=now + timedelta(days=3, hours=23, minutes=59),
-                    location='Online',
-                    color='#ff9800',
-                    created_by=teacher.id
-                )
-                db.session.add(event1)
-                db.session.add(event2)
-                db.session.add(event3)
-            
-            # Create sample notes if notes table is empty
-            if Note.query.count() == 0:
-                sample_note = Note(
-                    title='Welcome to StudyGrind',
-                    content='This is a sample note to get you started! You can create your own notes, view teacher notes, and access study materials.',
-                    subject='Orientation',
-                    user_id=student.id
-                )
-                db.session.add(sample_note)
-                
-                teacher_note = Note(
-                    title='Introduction to Python Programming',
-                    content='Python is a high-level, interpreted programming language known for its simplicity and readability.',
-                    subject='Computer Science',
-                    user_id=teacher.id,
-                    is_public=True,
-                    is_teacher_note=True
-                )
-                db.session.add(teacher_note)
-            
-            # Create sample link if links table is empty
-            if Link.query.count() == 0:
-                sample_link = Link(
-                    title='Python Official Documentation',
-                    url='https://docs.python.org/3/',
-                    description='Official Python documentation - tutorials, library reference, and more.',
-                    subject='Computer Science',
-                    created_by=teacher.id
-                )
-                db.session.add(sample_link)
-            
-            db.session.commit()
-            
-            print("✅ Database initialized with default users")
-            print("   Teacher: teacher@studygrind.com / teacher123")
-            print("   Student: student@studygrind.com / student123")
-
-# Create upload directories function
-def create_upload_directories():
-    """Create upload directories if they don't exist"""
-    try:
-        os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'textbooks'), exist_ok=True)
-        os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'resources'), exist_ok=True)
-        os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'submissions'), exist_ok=True)
-        print(f"✅ Upload directories created in {app.config['UPLOAD_FOLDER']}")
-    except Exception as e:
-        print(f"⚠️ Warning: Could not create upload directories: {e}")
-
 # ========== MAIN EXECUTION ==========
-
+# This block only runs when executing python app.py directly (for local development)
 if __name__ == '__main__':
-    # Initialize database
-    with app.app_context():
-        init_db()
-        create_upload_directories()
-    
-    # Get port from environment variable for Render
+    # Get port from environment variable
     port = int(os.environ.get('PORT', 5000))
     
     print("=" * 60)
