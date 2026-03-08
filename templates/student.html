@@ -828,15 +828,23 @@
         const modals = document.querySelectorAll('.modal');
         const closeModalBtns = document.querySelectorAll('.close-modal');
         
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
         // Show alert message
         function showAlert(message, type = 'error') {
             hideAlerts();
             
             if (type === 'error') {
-                errorAlert.querySelector('span').textContent = message;
+                document.getElementById('errorMessage').textContent = message;
                 errorAlert.style.display = 'flex';
             } else {
-                successAlert.querySelector('span').textContent = message;
+                document.getElementById('successMessage').textContent = message;
                 successAlert.style.display = 'flex';
                 
                 setTimeout(() => {
@@ -944,6 +952,86 @@
                 showAlert(error.message);
                 throw error;
             }
+        }
+        
+        // View note in detail
+        function viewNote(noteId) {
+            fetch(`${API_BASE}/notes/${noteId}`, {
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.note) {
+                    const note = data.note;
+                    
+                    // Create a modal for viewing the note
+                    const viewModal = document.createElement('div');
+                    viewModal.className = 'modal';
+                    viewModal.style.display = 'flex';
+                    viewModal.id = 'viewNoteModal';
+                    
+                    const isTeacherNote = note.is_teacher_note;
+                    const badgeColor = isTeacherNote ? 'var(--green)' : 'var(--primary)';
+                    const badgeText = isTeacherNote ? 'Teacher Note' : 'Personal Note';
+                    
+                    viewModal.innerHTML = `
+                        <div class="modal-content" style="max-width: 700px;">
+                            <div class="modal-header">
+                                <h3 class="modal-title">${escapeHtml(note.title)}</h3>
+                                <button class="close-modal" onclick="document.getElementById('viewNoteModal').remove()">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+                                    <span class="note-subject">${note.subject || 'General'}</span>
+                                    <span style="background: ${badgeColor}20; color: ${badgeColor}; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
+                                        ${badgeText}
+                                    </span>
+                                    ${note.tags ? note.tags.split(',').map(tag => 
+                                        `<span style="display: inline-block; background: #e0e0e0; padding: 2px 8px; border-radius: 12px; margin-left: 8px; font-size: 0.8rem;">${escapeHtml(tag.trim())}</span>`
+                                    ).join('') : ''}
+                                </div>
+                                <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; white-space: pre-wrap; line-height: 1.6; min-height: 200px;">
+                                    ${escapeHtml(note.content)}
+                                </div>
+                                <div style="margin-top: 1rem; color: var(--dark-gray); font-size: 0.9rem; display: flex; justify-content: space-between;">
+                                    <span>Created: ${new Date(note.created_at).toLocaleString()}</span>
+                                    <span>Last updated: ${new Date(note.updated_at).toLocaleString()}</span>
+                                </div>
+                            </div>
+                            <div style="padding: 1rem 2rem; border-top: 1px solid var(--gray); text-align: right;">
+                                ${!isTeacherNote ? `
+                                    <button class="btn btn-primary edit-note-btn" data-id="${note.id}" style="margin-right: 10px;">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                ` : ''}
+                                <button class="btn btn-primary" onclick="document.getElementById('viewNoteModal').remove()">Close</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(viewModal);
+                    
+                    // Add edit button listener if it exists
+                    const editBtn = viewModal.querySelector('.edit-note-btn');
+                    if (editBtn) {
+                        editBtn.addEventListener('click', async () => {
+                            viewModal.remove();
+                            await editNote(noteId);
+                        });
+                    }
+                    
+                    // Close modal when clicking outside
+                    viewModal.addEventListener('click', (e) => {
+                        if (e.target === viewModal) {
+                            viewModal.remove();
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading note:', error);
+                showAlert('Failed to load note', 'error');
+            });
         }
         
         // Load dashboard data
@@ -1253,7 +1341,7 @@
                         <div style="font-weight: bold; margin-bottom: 5px; ${isToday ? 'color: var(--primary);' : ''}">${day}</div>
                         <div class="calendar-events" style="font-size: 0.8rem;">
                             ${dayEvents.slice(0, 2).map(event => `
-                                <div style="background: ${event.color}20; color: ${event.color}; padding: 2px 4px; margin-bottom: 2px; border-radius: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${event.title}">
+                                <div style="background: ${event.color}20; color: ${event.color}; padding: 2px 4px; margin-bottom: 2px; border-radius: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(event.title)}">
                                     ${escapeHtml(event.title)}
                                 </div>
                             `).join('')}
@@ -1315,13 +1403,16 @@
                             <h3 class="note-title">${escapeHtml(note.title)}</h3>
                             <span class="note-subject">${note.subject || 'General'}</span>
                         </div>
-                        ${!isTeacherNote ? `
-                            <div class="note-actions">
+                        <div class="note-actions">
+                            <button class="btn btn-primary view-note-btn" data-id="${note.id}">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ${!isTeacherNote ? `
                                 <button class="btn btn-primary edit-note-btn" data-id="${note.id}">
-                                    <i class="fas fa-edit"></i> Edit
+                                    <i class="fas fa-edit"></i>
                                 </button>
-                            </div>
-                        ` : ''}
+                            ` : ''}
+                        </div>
                     </div>
                     <div class="note-content">
                         ${escapeHtml(note.content.substring(0, 200))}${note.content.length > 200 ? '...' : ''}
@@ -1333,9 +1424,6 @@
                         <div style="color: var(--dark-gray); font-size: 0.9rem;">
                             ${formatDate(note.updated_at)}
                         </div>
-                        <button class="btn btn-primary view-note-btn" data-id="${note.id}">
-                            <i class="fas fa-eye"></i> View
-                        </button>
                     </div>
                 </div>
             `;
@@ -1502,11 +1590,6 @@
             });
         }
         
-        // View note
-        function viewNote(noteId) {
-            showAlert('View note feature coming soon!', 'success');
-        }
-        
         // Edit note
         async function editNote(noteId) {
             try {
@@ -1519,7 +1602,7 @@
                 document.getElementById('noteContent').value = data.note.content;
                 document.getElementById('noteTags').value = data.note.tags || '';
                 
-                document.querySelector('.modal-title').textContent = 'Edit Note';
+                document.querySelector('#noteModal .modal-title').textContent = 'Edit Note';
                 showModal('noteModal');
                 
             } catch (error) {
@@ -1566,13 +1649,6 @@
             const sizes = ['Bytes', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-        
-        // Escape HTML
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
         }
         
         // Update user info in header
@@ -1640,14 +1716,14 @@
             document.getElementById('addNoteBtn').addEventListener('click', () => {
                 currentNoteId = null;
                 document.getElementById('noteForm').reset();
-                document.querySelector('.modal-title').textContent = 'Create Note';
+                document.querySelector('#noteModal .modal-title').textContent = 'Create Note';
                 showModal('noteModal');
             });
             
             document.getElementById('addNoteBtn2').addEventListener('click', () => {
                 currentNoteId = null;
                 document.getElementById('noteForm').reset();
-                document.querySelector('.modal-title').textContent = 'Create Note';
+                document.querySelector('#noteModal .modal-title').textContent = 'Create Note';
                 showModal('noteModal');
             });
             
