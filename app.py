@@ -1,4 +1,4 @@
-# app.py - StudyGrind Application (Render-Ready - FIXED VERSION)
+# app.py - StudyGrind Application (Render-Ready - COMPLETE FIXED VERSION)
 
 import os
 import math
@@ -925,6 +925,38 @@ def create_link():
     except Exception as e:
         db.session.rollback()
         print(f"Error creating link: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/links/<int:link_id>', methods=['PUT'])
+@login_required
+def update_link(link_id):
+    try:
+        if current_user.role != 'teacher':
+            return jsonify({'error': 'Only teachers can update links'}), 403
+        
+        link = Link.query.get_or_404(link_id)
+        if link.created_by != current_user.id:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        if 'title' in data:
+            link.title = data['title']
+        if 'url' in data:
+            link.url = data['url']
+        if 'description' in data:
+            link.description = data['description']
+        if 'subject' in data:
+            link.subject = data['subject']
+        
+        db.session.commit()
+        
+        return jsonify({'link': link.serialize, 'message': 'Link updated successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating link: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/links/<int:link_id>', methods=['DELETE'])
