@@ -2,13 +2,19 @@ services:
   - type: web
     name: studygrind
     runtime: python
-    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
       - key: SECRET_KEY
         generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: studygrind-db
+          property: connectionString
       - key: RENDER
         value: true
-      - key: PYTHON_VERSION
-        value: 3.9.0
+
+databases:
+  - name: studygrind-db
+    databaseName: studygrind
+    user: amz
