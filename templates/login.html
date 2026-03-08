@@ -234,45 +234,35 @@
         // Tab switching
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                // Update active tab
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 
-                // Show corresponding form
                 const formId = tab.dataset.form;
                 document.querySelectorAll('.form-container').forEach(form => {
                     form.classList.remove('active');
                 });
                 document.getElementById(formId + 'Form').classList.add('active');
                 
-                // Clear any error messages when switching tabs
                 hideAlerts();
             });
         });
         
-        // Hide all alerts
         function hideAlerts() {
             document.getElementById('errorAlert').style.display = 'none';
             document.getElementById('successAlert').style.display = 'none';
         }
         
-        // Show error message
         function showError(message) {
             const errorAlert = document.getElementById('errorAlert');
             errorAlert.textContent = message;
             errorAlert.style.display = 'block';
-            
-            // Hide success alert if visible
             document.getElementById('successAlert').style.display = 'none';
         }
         
-        // Show success message
         function showSuccess(message) {
             const successAlert = document.getElementById('successAlert');
             successAlert.textContent = message;
             successAlert.style.display = 'block';
-            
-            // Hide error alert if visible
             document.getElementById('errorAlert').style.display = 'none';
         }
         
@@ -285,13 +275,10 @@
             const submitBtn = document.getElementById('loginBtn');
             const originalText = submitBtn.textContent;
             
-            // Disable button and show loading state
             submitBtn.disabled = true;
             submitBtn.textContent = 'Logging in...';
             
             try {
-                console.log('Attempting login with:', email);
-                
                 const response = await fetch(`${API_BASE}/login`, {
                     method: 'POST',
                     headers: {
@@ -302,7 +289,6 @@
                 });
                 
                 const data = await response.json();
-                console.log('Login response:', data);
                 
                 if (!response.ok) {
                     throw new Error(data.error || 'Login failed');
@@ -310,7 +296,6 @@
                 
                 showSuccess('Login successful! Redirecting...');
                 
-                // FIXED: Remove '/api' from redirect paths
                 setTimeout(() => {
                     if (data.redirect) {
                         window.location.href = data.redirect;
@@ -338,13 +323,10 @@
             const submitBtn = document.getElementById('signupBtn');
             const originalText = submitBtn.textContent;
             
-            // Disable button and show loading state
             submitBtn.disabled = true;
             submitBtn.textContent = 'Creating account...';
             
             try {
-                console.log('Attempting signup with:', { name, email, role });
-                
                 const response = await fetch(`${API_BASE}/signup`, {
                     method: 'POST',
                     headers: {
@@ -355,7 +337,6 @@
                 });
                 
                 const data = await response.json();
-                console.log('Signup response:', data);
                 
                 if (!response.ok) {
                     throw new Error(data.error || 'Signup failed');
@@ -363,7 +344,6 @@
                 
                 showSuccess('Account created! Redirecting...');
                 
-                // FIXED: Remove '/api' from redirect paths
                 setTimeout(() => {
                     if (data.redirect) {
                         window.location.href = data.redirect;
@@ -388,10 +368,8 @@
                 });
                 
                 const data = await response.json();
-                console.log('Auth check:', data);
                 
                 if (data.authenticated && data.user) {
-                    // User is already logged in, redirect to appropriate dashboard
                     window.location.href = data.user.role === 'teacher' ? '/teacher' : '/student';
                 }
             } catch (error) {
@@ -399,10 +377,8 @@
             }
         }
         
-        // Check authentication on page load
         checkAuth();
         
-        // Add event listener for Enter key on password fields
         document.getElementById('loginPassword').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 document.getElementById('loginFormElement').requestSubmit();
@@ -410,5 +386,4 @@
         });
     </script>
 </body>
-
 </html>
