@@ -17,4 +17,4 @@ services:
 databases:
   - name: studygrind-db
     databaseName: studygrind
-    user: amz
+    user: studygrind
