@@ -208,7 +208,7 @@
                 </div>
                 <div class="form-group">
                     <label for="signupPassword">Password</label>
-                    <input type="password" id="signupPassword" placeholder="Create a password" required>
+                    <input type="password" id="signupPassword" placeholder="Create a password (min. 6 characters)" required>
                 </div>
                 <div class="form-group">
                     <label for="signupRole">I am a</label>
@@ -270,10 +270,16 @@
         document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const email = document.getElementById('loginEmail').value;
+            const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
             const submitBtn = document.getElementById('loginBtn');
             const originalText = submitBtn.textContent;
+            
+            // Basic validation
+            if (!email || !password) {
+                showError('Please enter both email and password');
+                return;
+            }
             
             submitBtn.disabled = true;
             submitBtn.textContent = 'Logging in...';
@@ -299,7 +305,7 @@
                 setTimeout(() => {
                     if (data.redirect) {
                         window.location.href = data.redirect;
-                    } else {
+                    } else if (data.user) {
                         window.location.href = data.user.role === 'teacher' ? '/teacher' : '/student';
                     }
                 }, 1000);
@@ -312,16 +318,32 @@
             }
         });
         
-        // Signup form submission
+        // Signup form submission with better validation
         document.getElementById('signupFormElement').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const name = document.getElementById('signupName').value;
-            const email = document.getElementById('signupEmail').value;
+            const name = document.getElementById('signupName').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
             const password = document.getElementById('signupPassword').value;
             const role = document.getElementById('signupRole').value;
             const submitBtn = document.getElementById('signupBtn');
             const originalText = submitBtn.textContent;
+            
+            // Validation
+            if (!name || !email || !password) {
+                showError('All fields are required');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showError('Password must be at least 6 characters long');
+                return;
+            }
+            
+            if (!email.includes('@') || !email.includes('.')) {
+                showError('Please enter a valid email address');
+                return;
+            }
             
             submitBtn.disabled = true;
             submitBtn.textContent = 'Creating account...';
