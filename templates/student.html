@@ -20,6 +20,7 @@
             --green: #4caf50;
             --purple: #9c27b0;
             --orange: #ff9800;
+            --red: #f44336;
         }
         
         * {
@@ -493,6 +494,54 @@
         .hidden {
             display: none !important;
         }
+        
+        /* Calendar Styles */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-bottom: 2rem;
+        }
+        
+        .calendar-cell {
+            min-height: 100px;
+            background: white;
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: var(--shadow);
+        }
+        
+        .calendar-cell.today {
+            border: 2px solid var(--primary);
+        }
+        
+        .calendar-cell.empty {
+            background: #f5f5f5;
+        }
+        
+        .calendar-day-header {
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            background: var(--primary);
+            color: white;
+            border-radius: 8px;
+        }
+        
+        .event-item {
+            border-left: 4px solid var(--primary);
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+        
+        .event-type-badge {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
     </style>
 </head>
 <body>
@@ -540,6 +589,10 @@
                 <div class="nav-item" data-section="resources">
                     <i class="fas fa-file-alt"></i>
                     <span>Resources</span>
+                </div>
+                <div class="nav-item" data-section="links">
+                    <i class="fas fa-link"></i>
+                    <span>Useful Links</span>
                 </div>
                 <div class="nav-item" data-section="assignments">
                     <i class="fas fa-tasks"></i>
@@ -599,6 +652,10 @@
                         <p>Loading teacher notes...</p>
                     </div>
                 </div>
+
+                <!-- Upcoming Events -->
+                <h2 style="margin: 2rem 0 1rem; color: var(--orange);">Upcoming Events</h2>
+                <div id="upcomingEvents"></div>
             </div>
             
             <!-- My Notes Content -->
@@ -618,7 +675,7 @@
             </div>
             
             <!-- Teacher Notes Content -->
-            <div id="teacherNotesContent" class="content-section hidden">
+            <div id="teacher-notesContent" class="content-section hidden">
                 <div class="content-header">
                     <h1 class="content-title">Teacher Notes</h1>
                 </div>
@@ -656,6 +713,19 @@
                 </div>
             </div>
             
+            <!-- Links Content -->
+            <div id="linksContent" class="content-section hidden">
+                <div class="content-header">
+                    <h1 class="content-title">Useful Links</h1>
+                </div>
+                <div class="notes-grid" id="linksGrid">
+                    <div class="loading-state">
+                        <i class="fas fa-spinner"></i>
+                        <p>Loading links...</p>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Assignments Content -->
             <div id="assignmentsContent" class="content-section hidden">
                 <div class="content-header">
@@ -674,11 +744,7 @@
                 <div class="content-header">
                     <h1 class="content-title">Calendar</h1>
                 </div>
-                <div style="text-align: center; padding: 3rem; color: var(--dark-gray);">
-                    <i class="fas fa-calendar-alt" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                    <h3>Calendar View</h3>
-                    <p>View your class schedule and assignment deadlines.</p>
-                </div>
+                <div id="calendarContainer"></div>
             </div>
         </section>
     </div>
@@ -751,6 +817,7 @@
         let currentNoteId = null;
         let currentAssignmentId = null;
         let currentUser = null;
+        let calendarEvents = [];
         
         // DOM Elements
         const logoutBtn = document.getElementById('logoutBtn');
@@ -794,7 +861,6 @@
         
         // Switch section
         function switchSection(sectionId) {
-            // Update active nav item
             navItems.forEach(item => {
                 item.classList.remove('active');
                 if (item.dataset.section === sectionId) {
@@ -802,7 +868,6 @@
                 }
             });
             
-            // Show/hide content sections
             contentSections.forEach(section => {
                 section.classList.add('hidden');
                 if (section.id === sectionId + 'Content') {
@@ -812,7 +877,6 @@
             
             currentSection = sectionId;
             
-            // Load section data
             loadSectionData(sectionId);
         }
         
@@ -834,8 +898,15 @@
                 case 'resources':
                     await loadResources();
                     break;
+                case 'links':
+                    await loadLinks();
+                    break;
                 case 'assignments':
                     await loadAssignments();
+                    break;
+                case 'calendar':
+                    await loadCalendarEvents();
+                    displayCalendarView();
                     break;
             }
         }
@@ -938,12 +1009,55 @@
                     teacherNotesGrid.innerHTML = '<div class="empty-state"><i class="fas fa-chalkboard-teacher"></i><h3>No teacher notes available</h3><p>Teachers haven\'t shared any notes yet</p></div>';
                 }
                 
-                // Add event listeners
+                // Display upcoming events
+                if (data.upcoming_events) {
+                    displayUpcomingEvents(data.upcoming_events);
+                }
+                
                 addNoteEventListeners();
                 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
             }
+        }
+        
+        // Display upcoming events on dashboard
+        function displayUpcomingEvents(events) {
+            const upcomingEventsDiv = document.getElementById('upcomingEvents');
+            if (!upcomingEventsDiv) return;
+            
+            if (!events || events.length === 0) {
+                upcomingEventsDiv.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-check"></i>
+                        <h3>No upcoming events</h3>
+                        <p>Check back later for scheduled events</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            upcomingEventsDiv.innerHTML = events.map(event => {
+                const eventDate = new Date(event.start_date);
+                const eventColor = event.color || '#2196f3';
+                
+                return `
+                    <div class="event-item" style="border-left: 4px solid ${eventColor};">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h4 style="margin: 0; color: var(--dark);">${escapeHtml(event.title)}</h4>
+                                <p style="margin: 0.25rem 0 0; color: var(--dark-gray); font-size: 0.9rem;">
+                                    <i class="fas fa-calendar-alt"></i> ${formatDate(event.start_date)}
+                                    ${event.location ? ` | <i class="fas fa-map-marker-alt"></i> ${escapeHtml(event.location)}` : ''}
+                                </p>
+                            </div>
+                            <span class="event-type-badge" style="background: ${eventColor}20; color: ${eventColor};">
+                                ${event.event_type || 'Event'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
         
         // Load my notes
@@ -959,7 +1073,6 @@
                     notesGrid.innerHTML = '<div class="empty-state"><i class="fas fa-sticky-note"></i><h3>No notes yet</h3><p>Create your first note to get started</p></div>';
                 }
                 
-                // Add event listeners
                 addNoteEventListeners();
                 
             } catch (error) {
@@ -1021,6 +1134,24 @@
             }
         }
         
+        // Load links
+        async function loadLinks() {
+            try {
+                const data = await apiRequest('/links');
+                if (!data) return;
+                
+                const linksGrid = document.getElementById('linksGrid');
+                if (data.links && data.links.length > 0) {
+                    linksGrid.innerHTML = data.links.map(link => createLinkCard(link)).join('');
+                } else {
+                    linksGrid.innerHTML = '<div class="empty-state"><i class="fas fa-link"></i><h3>No links available</h3><p>Check back later for useful links</p></div>';
+                }
+                
+            } catch (error) {
+                console.error('Error loading links:', error);
+            }
+        }
+        
         // Load assignments
         async function loadAssignments() {
             try {
@@ -1031,7 +1162,6 @@
                 
                 const assignmentsGrid = document.getElementById('assignmentsGrid');
                 if (assignmentsData.assignments && assignmentsData.assignments.length > 0) {
-                    // Filter out submitted assignments
                     const submittedIds = submissionsData.submissions.map(s => s.assignment_id);
                     const pendingAssignments = assignmentsData.assignments.filter(a => !submittedIds.includes(a.id));
                     
@@ -1044,12 +1174,133 @@
                     assignmentsGrid.innerHTML = '<div class="empty-state"><i class="fas fa-tasks"></i><h3>No assignments yet</h3><p>No assignments have been created yet</p></div>';
                 }
                 
-                // Add event listeners
                 addAssignmentEventListeners();
                 
             } catch (error) {
                 console.error('Error loading assignments:', error);
             }
+        }
+        
+        // Load calendar events
+        async function loadCalendarEvents() {
+            try {
+                const now = new Date();
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                
+                const response = await fetch(`${API_BASE}/events?start=${startOfMonth.toISOString()}&end=${endOfMonth.toISOString()}`, {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load events');
+                }
+                
+                const data = await response.json();
+                calendarEvents = data.events || [];
+                
+            } catch (error) {
+                console.error('Error loading calendar events:', error);
+                showAlert('Failed to load calendar events', 'error');
+            }
+        }
+        
+        // Display calendar view
+        function displayCalendarView() {
+            const calendarContainer = document.getElementById('calendarContainer');
+            if (!calendarContainer) return;
+            
+            const eventsByDate = {};
+            calendarEvents.forEach(event => {
+                const dateStr = new Date(event.start_date).toDateString();
+                if (!eventsByDate[dateStr]) {
+                    eventsByDate[dateStr] = [];
+                }
+                eventsByDate[dateStr].push(event);
+            });
+            
+            const today = new Date();
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+            
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            
+            let calendarHTML = `
+                <div class="calendar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2>${today.toLocaleString('default', { month: 'long' })} ${currentYear}</h2>
+                </div>
+                <div class="calendar-grid">
+            `;
+            
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            days.forEach(day => {
+                calendarHTML += `<div class="calendar-day-header">${day}</div>`;
+            });
+            
+            for (let i = 0; i < firstDay; i++) {
+                calendarHTML += `<div class="calendar-cell empty"></div>`;
+            }
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(currentYear, currentMonth, day);
+                const dateStr = date.toDateString();
+                const isToday = date.toDateString() === today.toDateString();
+                const dayEvents = eventsByDate[dateStr] || [];
+                
+                calendarHTML += `
+                    <div class="calendar-cell ${isToday ? 'today' : ''}">
+                        <div style="font-weight: bold; margin-bottom: 5px; ${isToday ? 'color: var(--primary);' : ''}">${day}</div>
+                        <div class="calendar-events" style="font-size: 0.8rem;">
+                            ${dayEvents.slice(0, 2).map(event => `
+                                <div style="background: ${event.color}20; color: ${event.color}; padding: 2px 4px; margin-bottom: 2px; border-radius: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${event.title}">
+                                    ${escapeHtml(event.title)}
+                                </div>
+                            `).join('')}
+                            ${dayEvents.length > 2 ? `<div style="color: var(--dark-gray);">+${dayEvents.length - 2} more</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            calendarHTML += '</div>';
+            
+            if (calendarEvents.length > 0) {
+                calendarHTML += `
+                    <div class="event-list" style="margin-top: 2rem;">
+                        <h3 style="color: var(--primary); margin-bottom: 1rem;">All Events</h3>
+                        <div style="display: grid; gap: 1rem;">
+                `;
+                
+                const sortedEvents = [...calendarEvents].sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+                
+                sortedEvents.forEach(event => {
+                    const eventDate = new Date(event.start_date);
+                    const eventColor = event.color || '#2196f3';
+                    
+                    calendarHTML += `
+                        <div class="event-item" style="border-left: 4px solid ${eventColor};">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div>
+                                    <h4 style="margin: 0; color: var(--dark);">${escapeHtml(event.title)}</h4>
+                                    <p style="margin: 0.25rem 0; color: var(--dark-gray);">
+                                        <i class="fas fa-calendar-alt"></i> ${eventDate.toLocaleDateString()} at ${eventDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    </p>
+                                    ${event.description ? `<p style="margin: 0.25rem 0; color: var(--dark-gray);">${escapeHtml(event.description)}</p>` : ''}
+                                    ${event.location ? `<p style="margin: 0.25rem 0; color: var(--dark-gray);"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(event.location)}</p>` : ''}
+                                </div>
+                                <span style="background: ${eventColor}20; color: ${eventColor}; padding: 4px 8px; border-radius: 20px; font-size: 0.8rem;">
+                                    ${event.event_type || 'Event'}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                calendarHTML += '</div></div>';
+            }
+            
+            calendarContainer.innerHTML = calendarHTML;
         }
         
         // Create note card
@@ -1125,6 +1376,7 @@
                 'lecture': 'Lecture Notes',
                 'assignment': 'Assignment',
                 'practice_test': 'Practice Test',
+                'video': 'Video',
                 'other': 'Resource'
             };
             
@@ -1147,6 +1399,31 @@
                         <button class="btn btn-primary download-btn" data-type="resources" data-filename="${resource.filename}">
                             <i class="fas fa-download"></i> Download
                         </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Create link card
+        function createLinkCard(link) {
+            return `
+                <div class="note-card" data-id="${link.id}">
+                    <div class="note-header">
+                        <div>
+                            <h3 class="note-title">${escapeHtml(link.title)}</h3>
+                            <span class="note-subject">${link.subject || 'General'}</span>
+                        </div>
+                    </div>
+                    <div class="note-content">
+                        <p>${link.description ? escapeHtml(link.description.substring(0, 150)) + (link.description.length > 150 ? '...' : '') : 'No description available.'}</p>
+                    </div>
+                    <div class="note-footer">
+                        <div style="color: var(--dark-gray); font-size: 0.9rem;">
+                            <i class="fas fa-user"></i> Added by: ${link.creator_name}
+                        </div>
+                        <a href="${link.url}" target="_blank" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt"></i> Visit
+                        </a>
                     </div>
                 </div>
             `;
@@ -1200,7 +1477,6 @@
         
         // Add note event listeners
         function addNoteEventListeners() {
-            // View note buttons
             document.querySelectorAll('.view-note-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const noteId = e.target.closest('button').dataset.id;
@@ -1208,7 +1484,6 @@
                 });
             });
             
-            // Edit note buttons (only for personal notes)
             document.querySelectorAll('.edit-note-btn').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const noteId = e.target.closest('button').dataset.id;
@@ -1219,7 +1494,6 @@
         
         // Add assignment event listeners
         function addAssignmentEventListeners() {
-            // Submit assignment buttons
             document.querySelectorAll('.submit-assignment-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const assignmentId = e.target.closest('button').dataset.id;
@@ -1230,7 +1504,6 @@
         
         // View note
         function viewNote(noteId) {
-            // In a real app, this would fetch and display the full note
             showAlert('View note feature coming soon!', 'success');
         }
         
@@ -1313,7 +1586,6 @@
         
         // Initialize app
         async function initApp() {
-            // Check authentication
             try {
                 const response = await fetch(`${API_BASE}/check-auth`, {
                     credentials: 'include'
@@ -1343,23 +1615,19 @@
                 return;
             }
             
-            // Load initial data
             await loadDashboardData();
             
-            // Set up event listeners
             setupEventListeners();
         }
         
         // Set up event listeners
         function setupEventListeners() {
-            // Navigation
             navItems.forEach(item => {
                 item.addEventListener('click', () => {
                     switchSection(item.dataset.section);
                 });
             });
             
-            // Logout
             logoutBtn.addEventListener('click', async () => {
                 try {
                     await apiRequest('/logout', 'POST');
@@ -1369,7 +1637,6 @@
                 }
             });
             
-            // Add note buttons
             document.getElementById('addNoteBtn').addEventListener('click', () => {
                 currentNoteId = null;
                 document.getElementById('noteForm').reset();
@@ -1384,7 +1651,6 @@
                 showModal('noteModal');
             });
             
-            // Note form submission
             document.getElementById('noteForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
@@ -1397,11 +1663,9 @@
                 
                 try {
                     if (currentNoteId) {
-                        // Update existing note
                         await apiRequest(`/notes/${currentNoteId}`, 'PUT', noteData);
                         showAlert('Note updated successfully', 'success');
                     } else {
-                        // Create new note
                         await apiRequest('/notes', 'POST', noteData);
                         showAlert('Note created successfully', 'success');
                     }
@@ -1414,7 +1678,6 @@
                 }
             });
             
-            // Submission form submission
             document.getElementById('submissionForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
@@ -1438,7 +1701,6 @@
                 }
             });
             
-            // Cancel buttons
             document.getElementById('cancelNoteBtn').addEventListener('click', () => {
                 hideModal('noteModal');
             });
@@ -1447,14 +1709,12 @@
                 hideModal('submissionModal');
             });
             
-            // Close modal buttons
             closeModalBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
                     btn.closest('.modal').style.display = 'none';
                 });
             });
             
-            // Close modals when clicking outside
             modals.forEach(modal => {
                 modal.addEventListener('click', (e) => {
                     if (e.target === modal) {
@@ -1463,7 +1723,6 @@
                 });
             });
             
-            // Download buttons (delegated)
             document.addEventListener('click', (e) => {
                 if (e.target.closest('.download-btn')) {
                     const btn = e.target.closest('.download-btn');
@@ -1474,9 +1733,7 @@
             });
         }
         
-        // Start the app
         initApp();
     </script>
 </body>
-
 </html>
