@@ -13,8 +13,11 @@ services:
           property: connectionString
       - key: RENDER
         value: true
+      - key: PYTHON_VERSION
+        value: 3.11.0
 
 databases:
   - name: studygrind-db
     databaseName: studygrind
     user: studygrind
+    plan: free
