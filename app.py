@@ -21,6 +21,7 @@ app = Flask(__name__,
 
 # Configuration - Use environment variables for production
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'studygrind-secure-key-2024')
+database_url = os.environ.get('DATABASE_URL')
 if database_url:
     database_url = database_url.replace('postgres://', 'postgresql://')
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
@@ -490,6 +491,10 @@ def init_db():
             print("✅ Database initialized with default users")
             print("   Teacher: teacher@studygrind.com / teacher123")
             print("   Student: student@studygrind.com / student123")
+        elif is_render and User.query.count() == 0:
+            # On Render with empty database - just create tables, no sample data
+            print("🌐 Production environment - no sample data created")
+
     except Exception as e:
         print(f"⚠️ Database initialization error: {e}")
         db.session.rollback()
@@ -1600,4 +1605,3 @@ if __name__ == '__main__':
     
     # Run the application
     app.run(host='0.0.0.0', port=port, debug=False)
-
