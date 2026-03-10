@@ -21,7 +21,14 @@ app = Flask(__name__,
 
 # Configuration - Use environment variables for production
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'studygrind-secure-key-2024')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///studygrind.db').replace('postgres://', 'postgresql://')
+if database_url:
+    database_url = database_url.replace('postgres://', 'postgresql://')
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    print("✅ Using PostgreSQL database (persistent storage)")
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///studygrind.db'
+    print("📁 Using SQLite database (local development)")
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -387,9 +394,11 @@ def init_db():
     try:
         db.create_all()
         print("✅ Database tables created/verified")
+        # Check if we're on Render AND if the database is empty
+        is_render = os.environ.get('RENDER') == 'true'
         
         # Only create default users if NO users exist
-        if User.query.count() == 0:
+        if not is_render and User.query.count() == 0:
             print("📝 Creating default users...")
             teacher = User(
                 email='teacher@studygrind.com',
@@ -1591,3 +1600,4 @@ if __name__ == '__main__':
     
     # Run the application
     app.run(host='0.0.0.0', port=port, debug=False)
+
