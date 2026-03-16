@@ -4,6 +4,7 @@ import os
 import math
 import time
 import secrets
+import tempfile
 from datetime import datetime, timedelta
 
 from flask import Flask, request, jsonify, render_template, send_file, redirect
@@ -36,7 +37,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 
 # File upload config - Use /tmp for ephemeral storage on Render
-if os.environ.get('RENDER'):
+if os.environ.get('VERCEL') or os.environ.get('RENDER'):
     app.config['UPLOAD_FOLDER'] = '/tmp/uploads'
 else:
     app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -1605,3 +1606,4 @@ if __name__ == '__main__':
     
     # Run the application
     app.run(host='0.0.0.0', port=port, debug=False)
+    app = app
