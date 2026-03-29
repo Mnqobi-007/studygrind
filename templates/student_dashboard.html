@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyGrind | Student Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/c427389445.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo"><span class="logo-box">S</span> StudyGrind<span class="dot">.</span></div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="active" onclick="showSection('overview')"><i class="fa-solid fa-house"></i> Overview</li>
+                    <li onclick="showSection('timetable')"><i class="fa-solid fa-calendar-days"></i> Timetable</li>
+                    <li onclick="showSection('notes')"><i class="fa-solid fa-pen-nib"></i> Study Notes</li>
+                    <li onclick="showSection('docs')"><i class="fa-solid fa-box-archive"></i> Documents</li>
+                    <li onclick="showSection('assignments')"><i class="fa-solid fa-file-arrow-up"></i> Assignments</li>
+                    <li onclick="showSection('quizzes')"><i class="fa-solid fa-circle-check"></i> MCQ Quiz</li>
+                </ul>
+            </nav>
+
+            <div class="user-card">
+                <img src="https://ui-avatars.com/api/?name={{ user.full_name|urlencode }}&background=facc15&color=000" alt="User">
+                <div class="u-info">
+                    <p class="u-name">{{ user.full_name }}</p>
+                    <p class="u-status">
+                        <span class="role-badge student">Student</span>
+                    </p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" placeholder="Search resources...">
+                </div>
+                <div class="header-actions">
+                    <button class="btn-yellow-sm" onclick="window.location.href='/auth/logout'"><i class="fa-solid fa-sign-out-alt"></i> Logout</button>
+                </div>
+            </header>
+
+            <section id="overview" class="content-section active">
+                <div class="welcome-banner">
+                    <h1>Ready to <span class="txt-yellow">Grind</span>, {{ user.full_name.split()[0] }}? 👋</h1>
+                    <p id="studentStats">Loading your stats...</p>
+                </div>
+                
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card primary">
+                        <i class="fa-solid fa-tasks"></i>
+                        <h3 id="pendingCount">0</h3>
+                        <p>Pending Assignments</p>
+                    </div>
+                    <div class="stat-card success">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <h3 id="avgScore">0%</h3>
+                        <p>Average Quiz Score</p>
+                    </div>
+                    <div class="stat-card warning">
+                        <i class="fa-solid fa-check-circle"></i>
+                        <h3 id="quizCount">0</h3>
+                        <p>Quizzes Completed</p>
+                    </div>
+                </div>
+
+                <div class="two-column">
+                    <div class="content-card">
+                        <h3><i class="fa-solid fa-clock"></i> Quick Actions</h3>
+                        <div class="quick-actions">
+                            <div class="action-btn" onclick="showSection('assignments')">
+                                <i class="fa-solid fa-file-arrow-up"></i>
+                                <span>Submit Assignment</span>
+                            </div>
+                            <div class="action-btn" onclick="showSection('quizzes')">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>Take Quiz</span>
+                            </div>
+                            <div class="action-btn" onclick="showSection('timetable')">
+                                <i class="fa-solid fa-calendar-plus"></i>
+                                <span>Manage Schedule</span>
+                            </div>
+                            <div class="action-btn" onclick="showSection('notes')">
+                                <i class="fa-solid fa-book"></i>
+                                <span>Study Notes</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="content-card">
+                        <h3><i class="fa-solid fa-bell"></i> Recent Activity</h3>
+                        <ul class="recent-list" id="recentActivity">
+                            <li>Loading...</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="timetable" class="content-section">
+                <div class="content-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3><i class="fa-solid fa-calendar-days"></i> My Timetable</h3>
+                        <button class="create-timetable-btn" onclick="openTimetableModal()">
+                            <i class="fa-solid fa-plus"></i> Add Entry
+                        </button>
+                    </div>
+                    
+                    <div class="days-of-week">
+                        <button class="day-filter active" onclick="filterTimetableByDay('all')">All Days</button>
+                        <button class="day-filter" onclick="filterTimetableByDay('Monday')">Monday</button>
+                        <button class="day-filter" onclick="filterTimetableByDay('Tuesday')">Tuesday</button>
+                        <button class="day-filter" onclick="filterTimetableByDay('Wednesday')">Wednesday</button>
+                        <button class="day-filter" onclick="filterTimetableByDay('Thursday')">Thursday</button>
+                        <button class="day-filter" onclick="filterTimetableByDay('Friday')">Friday</button>
+                        <button class="day-filter" onclick="filterTimetableByDay('Saturday')">Saturday</button>
+                        <button class="day-filter" onclick="filterTimetableByDay('Sunday')">Sunday</button>
+                    </div>
+                    
+                    <div id="timetableContainer" class="timetable-grid">
+                        <div class="empty-timetable">Loading your timetable...</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="notes" class="content-section">
+                <div class="content-card">
+                    <h3><i class="fa-solid fa-pen-nib"></i> Study Notes</h3>
+                    <div class="notes-grid" id="notesGrid">
+                        Loading notes...
+                    </div>
+                </div>
+            </section>
+
+            <section id="docs" class="content-section">
+                <div class="content-card">
+                    <h3><i class="fa-solid fa-box-archive"></i> My Documents</h3>
+                    <div class="docs-list" id="docsList">
+                        <div class="doc-item"><i class="fa-solid fa-file-pdf red"></i> Syllabus_2024.pdf <span>2.4 MB</span></div>
+                        <div class="doc-item"><i class="fa-solid fa-file-word blue"></i> Final_Draft.docx <span>1.1 MB</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="assignments" class="content-section">
+                <div class="content-card">
+                    <h3><i class="fa-solid fa-file-arrow-up"></i> Assignments</h3>
+                    <div id="assignmentsList"></div>
+                </div>
+            </section>
+
+            <section id="quizzes" class="content-section">
+                <div class="quiz-box" id="quizContainer">
+                    <div class="q-progress"><div class="q-bar" id="quizProgress" style="width: 0%"></div></div>
+                    <p class="q-count" id="quizCountDisplay">Select a quiz to start</p>
+                    <div id="quizSelector"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="timetableModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Create Timetable Entry</h3>
+                <span class="close-modal" onclick="closeTimetableModal()">&times;</span>
+            </div>
+            <form id="timetableForm">
+                <input type="hidden" id="entryId" value="">
+                <div class="form-group">
+                    <label>Day of Week *</label>
+                    <select id="dayOfWeek" required>
+                        <option value="">Select Day</option>
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                        <option value="Sunday">Sunday</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Start Time *</label>
+                    <input type="time" id="startTime" required>
+                </div>
+                <div class="form-group">
+                    <label>End Time *</label>
+                    <input type="time" id="endTime" required>
+                </div>
+                <div class="form-group">
+                    <label>Subject *</label>
+                    <input type="text" id="subject" placeholder="e.g., Mathematics" required>
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="location" placeholder="e.g., Room 101">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="notes" rows="3" placeholder="Additional notes..."></textarea>
+                </div>
+                <button type="submit" class="btn-submit" style="width: 100%;">Save Entry</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="noteModal" class="modal note-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="noteTitle">Note Details</h3>
+                <span class="close-modal" onclick="closeNoteModal()">&times;</span>
+            </div>
+            <div id="noteContent">
+                <p><strong>Subject:</strong> <span id="noteSubject"></span></p>
+                <p><strong>Teacher:</strong> <span id="noteTeacher"></span></p>
+                <p><strong>Date:</strong> <span id="noteDate"></span></p>
+                <div id="noteDescription" style="margin-top: 20px;"></div>
+                <div id="noteFileSection" style="display: none;" class="note-file">
+                    <p><strong>Attached File:</strong></p>
+                    <button class="btn-download" onclick="downloadNoteFile()">
+                        <i class="fa-solid fa-download"></i> Download File
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

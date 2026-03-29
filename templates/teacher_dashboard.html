@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyGrind | Teacher Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/c427389445.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo"><span class="logo-box">S</span> StudyGrind<span class="dot">.</span></div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="active" onclick="showSection('overview')"><i class="fa-solid fa-house"></i> Overview</li>
+                    <li onclick="showSection('timetable')"><i class="fa-solid fa-calendar-days"></i> Schedule</li>
+                    <li onclick="showSection('assignments')"><i class="fa-solid fa-file-signature"></i> Assignments</li>
+                    <li onclick="showSection('quizzes')"><i class="fa-solid fa-plus-square"></i> Create Quiz</li>
+                    <li onclick="showSection('grading')"><i class="fa-solid fa-graduation-cap"></i> Grading</li>
+                    <li onclick="showSection('notes')"><i class="fa-solid fa-folder-tree"></i> Resources</li>
+                </ul>
+            </nav>
+
+            <div class="user-card">
+                <img src="https://ui-avatars.com/api/?name={{ user.full_name|urlencode }}&background=3b82f6&color=fff" alt="Teacher">
+                <div class="u-info">
+                    <p class="u-name">{{ user.full_name }}</p>
+                    <p class="u-status">
+                        <span class="role-badge teacher">Teacher</span>
+                    </p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" placeholder="Search students, assignments...">
+                </div>
+                <div class="header-actions">
+                    <button class="btn-yellow-sm" onclick="window.location.href='/auth/logout'"><i class="fa-solid fa-sign-out-alt"></i> Logout</button>
+                </div>
+            </header>
+
+            <section id="overview" class="content-section active">
+                <div class="welcome-banner">
+                    <h1>Welcome back, <span class="txt-yellow">Prof. {{ user.full_name.split()[1] if user.full_name.split()|length > 1 else user.full_name }}</span>! 📚</h1>
+                    <p id="teacherStats">Loading your stats...</p>
+                </div>
+                
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card primary">
+                        <i class="fa-solid fa-tasks"></i>
+                        <h3 id="assignmentsCount">0</h3>
+                        <p>Active Assignments</p>
+                    </div>
+                    <div class="stat-card success">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <h3 id="submissionsCount">0</h3>
+                        <p>Submissions</p>
+                    </div>
+                    <div class="stat-card warning">
+                        <i class="fa-solid fa-users"></i>
+                        <h3 id="studentsCount">0</h3>
+                        <p>Students</p>
+                    </div>
+                    <div class="stat-card danger">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <h3 id="quizzesCount">0</h3>
+                        <p>Quizzes</p>
+                    </div>
+                </div>
+
+                <div class="two-column">
+                    <div class="content-card">
+                        <h3><i class="fa-solid fa-bolt"></i> Quick Actions</h3>
+                        <div class="quick-actions">
+                            <div class="action-btn" onclick="showSection('assignments')">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Create Assignment</span>
+                            </div>
+                            <div class="action-btn" onclick="showSection('quizzes')">
+                                <i class="fa-solid fa-plus-square"></i>
+                                <span>Create Quiz</span>
+                            </div>
+                            <div class="action-btn" onclick="showSection('grading')">
+                                <i class="fa-solid fa-check-double"></i>
+                                <span>Grade Submissions</span>
+                            </div>
+                            <div class="action-btn" onclick="showSection('notes')">
+                                <i class="fa-solid fa-upload"></i>
+                                <span>Upload Resource</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="content-card">
+                        <h3><i class="fa-solid fa-clock"></i> Pending Grading</h3>
+                        <ul class="recent-list" id="pendingGrading">
+                            <li>Loading...</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="timetable" class="content-section">
+                <div class="content-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3><i class="fa-solid fa-calendar-days"></i> Class Schedule</h3>
+                        <button class="create-timetable-btn" onclick="openTimetableModal()">
+                            <i class="fa-solid fa-plus"></i> Add Class
+                        </button>
+                    </div>
+                    
+                    <div class="days-of-week">
+                        <button class="day-filter active" onclick="filterTimetableByDay('all')">All Days</button>
+                        <button class="day-filter" onclick="filterTimetableByDay('Monday')">Monday</button>
+                        <button class="day-filter" onclick="filterTimetableByDay('Tuesday')">Tuesday</button>
+                        <button class="day-filter" onclick="filterTimetableByDay('Wednesday')">Wednesday</button>
+                        <button class="day-filter" onclick="filterTimetableByDay('Thursday')">Thursday</button>
+                        <button class="day-filter" onclick="filterTimetableByDay('Friday')">Friday</button>
+                    </div>
+                    
+                    <div id="timetableContainer" class="timetable-grid">
+                        <div class="empty-timetable">Loading your schedule...</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="assignments" class="content-section">
+                <div class="content-card">
+                    <h3><i class="fa-solid fa-file-signature"></i> Create New Assignment</h3>
+                    <div class="form-group">
+                        <label>Title</label>
+                        <input type="text" id="assignTitle" placeholder="Assignment Title">
+                    </div>
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <input type="text" id="assignSubject" placeholder="Subject">
+                    </div>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input type="datetime-local" id="assignDueDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Instructions</label>
+                        <textarea id="assignDesc" rows="3" placeholder="Describe the requirements..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Max Score</label>
+                        <input type="number" id="assignMaxScore" value="100">
+                    </div>
+                    <button class="btn-submit" onclick="publishAssignment()">Publish Assignment</button>
+                </div>
+
+                <div class="content-card">
+                    <h3><i class="fa-solid fa-list"></i> Your Assignments</h3>
+                    <div id="assignmentsList"></div>
+                </div>
+            </section>
+
+            <section id="quizzes" class="content-section">
+                <div class="content-card">
+                    <h3><i class="fa-solid fa-plus-square"></i> Create New Quiz</h3>
+                    <div class="form-group">
+                        <label>Quiz Title</label>
+                        <input type="text" id="quizTitle" placeholder="e.g., Physics Mid-Term">
+                    </div>
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <input type="text" id="quizSubject" placeholder="Subject">
+                    </div>
+                    <div class="form-group">
+                        <label>Question</label>
+                        <textarea id="qText" placeholder="Enter your question..."></textarea>
+                    </div>
+                    <label>Options (Click the circle to mark correct answer)</label>
+                    <div class="mcq-options-grid">
+                        <div class="mcq-row active" onclick="setCorrect(this)">
+                            <div class="check-circle"><i class="fa-solid fa-check"></i></div>
+                            <input type="text" id="optA" placeholder="Option A (Correct)">
+                        </div>
+                        <div class="mcq-row" onclick="setCorrect(this)">
+                            <div class="check-circle"><i class="fa-solid fa-check"></i></div>
+                            <input type="text" id="optB" placeholder="Option B">
+                        </div>
+                        <div class="mcq-row" onclick="setCorrect(this)">
+                            <div class="check-circle"><i class="fa-solid fa-check"></i></div>
+                            <input type="text" id="optC" placeholder="Option C">
+                        </div>
+                        <div class="mcq-row" onclick="setCorrect(this)">
+                            <div class="check-circle"><i class="fa-solid fa-check"></i></div>
+                            <input type="text" id="optD" placeholder="Option D">
+                        </div>
+                    </div>
+                    <button class="btn-submit" onclick="publishQuestion()">Add Question to Quiz</button>
+                </div>
+            </section>
+
+            <section id="grading" class="content-section">
+                <div class="content-card">
+                    <h3><i class="fa-solid fa-graduation-cap"></i> Pending Submissions</h3>
+                    <table class="grade-table">
+                        <thead>
+                            <tr><th>Student</th><th>Assignment</th><th>Submitted</th><th>Score</th><th>Action</th>
+                        </thead>
+                        <tbody id="submissionsList">
+                            <tr><td colspan="5">Loading submissions...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="notes" class="content-section">
+                <div class="content-card">
+                    <h3><i class="fa-solid fa-folder-tree"></i> Upload Resource</h3>
+                    <div class="form-group">
+                        <label>Title</label>
+                        <input type="text" id="noteTitle" placeholder="Resource title">
+                    </div>
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <input type="text" id="noteSubject" placeholder="Subject">
+                    </div>
+                    <div class="form-group">
+                        <label>Content/Description</label>
+                        <textarea id="noteContent" rows="3" placeholder="Resource description..."></textarea>
+                    </div>
+                    <button class="btn-submit" onclick="uploadNote()">Upload Resource</button>
+                </div>
+
+                <div class="content-card">
+                    <h3><i class="fa-solid fa-book"></i> Your Resources</h3>
+                    <div id="notesList"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="timetableModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Schedule Class</h3>
+                <span class="close-modal" onclick="closeTimetableModal()">&times;</span>
+            </div>
+            <form id="timetableForm">
+                <input type="hidden" id="entryId" value="">
+                <div class="form-group">
+                    <label>Day *</label>
+                    <select id="dayOfWeek" required>
+                        <option value="">Select Day</option>
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Start Time *</label>
+                    <input type="time" id="startTime" required>
+                </div>
+                <div class="form-group">
+                    <label>End Time *</label>
+                    <input type="time" id="endTime" required>
+                </div>
+                <div class="form-group">
+                    <label>Subject *</label>
+                    <input type="text" id="subject" required>
+                </div>
+                <div class="form-group">
+                    <label>Room</label>
+                    <input type="text" id="location">
+                </div>
+                <button type="submit" class="btn-submit">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

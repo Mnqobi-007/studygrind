@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyGrind | Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/c427389445.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <div class="split-screen">
+        <div class="left-side">
+            <video autoplay muted loop playsinline class="bg-video">
+                <source src="https://assets.mixkit.co/videos/preview/mixkit-top-view-of-a-blue-and-yellow-swirling-liquid-art-41315-large.mp4" type="video/mp4">
+            </video>
+            <div class="video-overlay"></div>
+            <div class="content">
+                <div class="logo">
+                    <span class="logo-icon">S</span> STUDYGRIND<span class="dot">.</span>
+                </div>
+                <h1>The future is <span class="highlight-yellow">bright</span>.</h1>
+                <p>Access the world's most innovative learning platform with one click.</p>
+            </div>
+        </div>
+
+        <div class="right-side">
+            <div class="form-container">
+                <div id="login-form" class="auth-box active">
+                    <div class="form-header">
+                        <h2>Login</h2>
+                        <p>Welcome back! Please enter your details.</p>
+                    </div>
+
+                    <div class="social-auth">
+                        <a href="{{ url_for('auth.google_login') }}" class="social-btn google">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="">
+                            <span>Google</span>
+                        </a>
+                        <a href="{{ url_for('auth.facebook_login') }}" class="social-btn facebook">
+                            <i class="fa-brands fa-facebook-f"></i>
+                            <span>Facebook</span>
+                        </a>
+                    </div>
+
+                    <div class="divider"><span>OR EMAIL</span></div>
+
+                    <form id="loginForm">
+                        <div class="input-field">
+                            <input type="email" id="loginEmail" placeholder="Email Address" required>
+                        </div>
+                        <div class="input-field">
+                            <input type="password" id="loginPassword" placeholder="Password" required>
+                        </div>
+                        <div class="form-options">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="rememberMe">
+                                <span class="checkmark"></span>
+                                Remember me
+                            </label>
+                            <a href="#" class="forgot-link" onclick="showForm('forgot-password')">Forgot?</a>
+                        </div>
+                        <button type="submit" class="btn-submit">Sign In</button>
+                    </form>
+                    <p class="switch-text">New here? <a href="#" class="yellow-link" onclick="showForm('register-form')">Create an account</a></p>
+                </div>
+
+                <div id="register-form" class="auth-box">
+                    <div class="form-header">
+                        <h2>Join StudyGrind</h2>
+                        <p>Start your learning journey today.</p>
+                    </div>
+                    <form id="registerForm">
+                        <div class="input-field">
+                            <input type="text" id="regFullName" placeholder="Full Name" required>
+                        </div>
+                        <div class="input-field">
+                            <input type="email" id="regEmail" placeholder="Email Address" required>
+                        </div>
+                        <div class="input-field">
+                            <input type="password" id="regPassword" placeholder="Create Password" required>
+                        </div>
+                        <button type="submit" class="btn-submit yellow-btn">Get Started</button>
+                    </form>
+                    <p class="switch-text">Already have an account? <a href="#" class="blue-link" onclick="showForm('login-form')">Log In</a></p>
+                </div>
+
+                <div id="forgot-password" class="auth-box">
+                    <div class="form-header">
+                        <h2>Reset</h2>
+                        <p>Enter your email to get a reset link.</p>
+                    </div>
+                    <form id="forgotForm">
+                        <div class="input-field">
+                            <input type="email" id="resetEmail" placeholder="Email Address" required>
+                        </div>
+                        <button type="submit" class="btn-submit">Send Link</button>
+                    </form>
+                    <p class="switch-text"><a href="#" onclick="showForm('login-form')">← Back to Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+</body>
+</html>
