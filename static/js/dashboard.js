@@ -6,12 +6,26 @@ let currentQuiz = null;
 let currentQuestionIndex = 0;
 let answers = {};
 
-// Navigation
+// ==================== UTILITY FUNCTIONS ====================
+
 function showSection(sectionId) {
-    document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
-    document.getElementById(sectionId).classList.add('active');
-    document.querySelectorAll('.sidebar-nav li').forEach(item => item.classList.remove('active'));
-    if (event && event.currentTarget) event.currentTarget.classList.add('active');
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => section.classList.remove('active'));
+    
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.classList.add('active');
+    }
+    
+    const navItems = document.querySelectorAll('.sidebar-nav li');
+    navItems.forEach(item => item.classList.remove('active'));
+    
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+    }
+    
+    // Save current section to localStorage
+    localStorage.setItem('lastSection', sectionId);
 }
 
 function escapeHtml(text) {
@@ -21,18 +35,51 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    } catch (e) {
+        return dateString;
+    }
+}
+
+function formatDateTime(dateString) {
+    if (!dateString) return 'N/A';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (e) {
+        return dateString;
+    }
+}
+
 // ==================== TIMETABLE FUNCTIONS ====================
 
 async function loadTimetable() {
     try {
         const response = await fetch('/api/timetable');
+        if (!response.ok) throw new Error('Failed to load timetable');
         const entries = await response.json();
         currentTimetableEntries = entries;
         renderTimetable();
     } catch (e) {
         console.error('Error loading timetable:', e);
         const container = document.getElementById('timetableContainer');
-        if (container) container.innerHTML = '<div class="empty-timetable">Error loading timetable</div>';
+        if (container) {
+            container.innerHTML = '<div class="empty-timetable">⚠️ Error loading timetable. Please refresh the page.</div>';
+        }
     }
 }
 
@@ -43,25 +90,28 @@ function renderTimetable() {
     const filteredEntries = currentFilterDay === 'all'
         ? currentTimetableEntries
         : currentTimetableEntries.filter(e => e.day_of_week === currentFilterDay);
-
+    
     if (filteredEntries.length === 0) {
-        container.innerHTML = '<div class="empty-timetable">No timetable entries. Click "Add Entry" to add your schedule!</div>';
+        container.innerHTML = '<div class="empty-timetable">📅 No timetable entries. Click "Add Entry" to create your schedule!</div>';
         return;
     }
-
+    
+    // Group by day
     const grouped = {};
     filteredEntries.forEach(entry => {
         if (!grouped[entry.day_of_week]) grouped[entry.day_of_week] = [];
         grouped[entry.day_of_week].push(entry);
     });
-
+    
     const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const sortedDays = Object.keys(grouped).sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
-
+    
     let html = '<table class="timetable-table"><thead><tr><th>Day</th><th>Schedule</th></tr></thead><tbody>';
+    
     sortedDays.forEach(day => {
         const entries = grouped[day].sort((a, b) => a.start_time.localeCompare(b.start_time));
         html += `<tr><td style="width: 120px; font-weight: 700; vertical-align: top;">${escapeHtml(day)}</td><td>`;
+        
         entries.forEach(entry => {
             html += `
                 <div class="timetable-entry">
@@ -70,22 +120,31 @@ function renderTimetable() {
                     ${entry.location ? `<div><i class="fa-solid fa-location-dot"></i> ${escapeHtml(entry.location)}</div>` : ''}
                     ${entry.notes ? `<div><small><i class="fa-solid fa-note-sticky"></i> ${escapeHtml(entry.notes)}</small></div>` : ''}
                     <div class="entry-actions">
-                        <button class="edit-entry" onclick="editTimetableEntry(${entry.id})"><i class="fa-solid fa-edit"></i> Edit</button>
-                        <button class="delete-entry" onclick="deleteTimetableEntry(${entry.id})"><i class="fa-solid fa-trash"></i> Delete</button>
+                        <button class="edit-entry" onclick="editTimetableEntry(${entry.id})">
+                            <i class="fa-solid fa-edit"></i> Edit
+                        </button>
+                        <button class="delete-entry" onclick="deleteTimetableEntry(${entry.id})">
+                            <i class="fa-solid fa-trash"></i> Delete
+                        </button>
                     </div>
                 </div>
             `;
         });
+        
         html += `</td></tr>`;
     });
-    html += '</tbody><table>';
+    
+    html += '</tbody></table>';
     container.innerHTML = html;
 }
 
 function filterTimetableByDay(day) {
     currentFilterDay = day;
-    document.querySelectorAll('.day-filter').forEach(btn => btn.classList.remove('active'));
-    if (event && event.currentTarget) event.currentTarget.classList.add('active');
+    const filters = document.querySelectorAll('.day-filter');
+    filters.forEach(btn => btn.classList.remove('active'));
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+    }
     renderTimetable();
 }
 
@@ -94,8 +153,8 @@ function openTimetableModal(entry = null) {
     if (!modal) return;
     
     const form = document.getElementById('timetableForm');
-    form.reset();
-
+    if (form) form.reset();
+    
     if (entry) {
         document.getElementById('modalTitle').textContent = 'Edit Timetable Entry';
         document.getElementById('entryId').value = entry.id;
@@ -109,6 +168,7 @@ function openTimetableModal(entry = null) {
         document.getElementById('modalTitle').textContent = 'Create Timetable Entry';
         document.getElementById('entryId').value = '';
     }
+    
     modal.classList.add('active');
 }
 
@@ -124,15 +184,16 @@ async function editTimetableEntry(entryId) {
 
 async function deleteTimetableEntry(entryId) {
     if (!confirm('Are you sure you want to delete this timetable entry?')) return;
-
+    
     try {
         const response = await fetch(`/api/timetable/${entryId}`, { method: 'DELETE' });
         const data = await response.json();
+        
         if (data.success) {
-            alert('Entry deleted successfully');
+            alert('✓ Entry deleted successfully');
             loadTimetable();
         } else {
-            alert('Error deleting entry');
+            alert('Error deleting entry: ' + (data.error || 'Unknown error'));
         }
     } catch (e) {
         alert('Error: ' + e.message);
@@ -144,6 +205,7 @@ const timetableForm = document.getElementById('timetableForm');
 if (timetableForm) {
     timetableForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
         const entryId = document.getElementById('entryId').value;
         const data = {
             day_of_week: document.getElementById('dayOfWeek').value,
@@ -153,24 +215,26 @@ if (timetableForm) {
             location: document.getElementById('location').value,
             notes: document.getElementById('notes').value
         };
-
+        
         if (!data.day_of_week || !data.start_time || !data.end_time || !data.subject) {
             alert('Please fill in all required fields');
             return;
         }
-
+        
         const url = entryId ? `/api/timetable/${entryId}` : '/api/timetable';
         const method = entryId ? 'PUT' : 'POST';
-
+        
         try {
             const response = await fetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
+            
             const result = await response.json();
+            
             if (result.success) {
-                alert(entryId ? 'Entry updated successfully' : 'Entry created successfully');
+                alert(entryId ? '✓ Entry updated successfully' : '✓ Entry created successfully');
                 closeTimetableModal();
                 loadTimetable();
             } else {
@@ -187,54 +251,63 @@ if (timetableForm) {
 async function loadNotes() {
     try {
         const response = await fetch('/api/notes');
+        if (!response.ok) throw new Error('Failed to load notes');
         const notes = await response.json();
         const grid = document.getElementById('notesGrid');
+        
         if (!grid) return;
         
         if (notes.length === 0) {
-            grid.innerHTML = '<p style="text-align: center; color: var(--text-gray);">No notes available yet.</p>';
+            grid.innerHTML = '<p style="text-align: center; color: var(--text-gray);">📚 No notes available yet. Check back later!</p>';
             return;
         }
+        
         grid.innerHTML = notes.map(note => `
             <div class="note-card" onclick="viewNoteDetails(${note.id})">
                 <div class="note-color" style="background: var(--blue);"></div>
                 <h4>${escapeHtml(note.title)}</h4>
-                <p><i class="fa-solid fa-book"></i> ${note.subject || 'General'} • by ${note.teacher || 'Teacher'}</p>
-                <small><i class="fa-regular fa-calendar"></i> ${new Date(note.created_at).toLocaleDateString()}</small>
+                <p><i class="fa-solid fa-book"></i> ${escapeHtml(note.subject || 'General')} • by ${escapeHtml(note.teacher || 'Teacher')}</p>
+                <small><i class="fa-regular fa-calendar"></i> ${formatDate(note.created_at)}</small>
                 ${note.file_path ? '<div style="margin-top: 8px;"><i class="fa-solid fa-paperclip"></i> Has attachment</div>' : ''}
             </div>
         `).join('');
     } catch (e) {
-        console.error(e);
+        console.error('Error loading notes:', e);
+        const grid = document.getElementById('notesGrid');
+        if (grid) grid.innerHTML = '<p style="color: red;">Error loading notes</p>';
     }
 }
 
 async function viewNoteDetails(noteId) {
     try {
         const response = await fetch(`/api/notes/${noteId}`);
+        if (!response.ok) throw new Error('Failed to load note details');
         currentNote = await response.json();
-
+        
         document.getElementById('noteTitle').textContent = currentNote.title;
         document.getElementById('noteSubject').textContent = currentNote.subject || 'General';
         document.getElementById('noteTeacher').textContent = currentNote.teacher;
-        document.getElementById('noteDate').textContent = new Date(currentNote.created_at).toLocaleDateString();
+        document.getElementById('noteDate').textContent = formatDate(currentNote.created_at);
         document.getElementById('noteDescription').innerHTML = currentNote.content || 'No description available.';
-
+        
         const fileSection = document.getElementById('noteFileSection');
         if (currentNote.file_path) {
             fileSection.style.display = 'block';
         } else {
             fileSection.style.display = 'none';
         }
-
-        document.getElementById('noteModal').classList.add('active');
+        
+        const modal = document.getElementById('noteModal');
+        if (modal) modal.classList.add('active');
     } catch (e) {
+        console.error('Error loading note details:', e);
         alert('Error loading note details');
     }
 }
 
 function closeNoteModal() {
-    document.getElementById('noteModal').classList.remove('active');
+    const modal = document.getElementById('noteModal');
+    if (modal) modal.classList.remove('active');
     currentNote = null;
 }
 
@@ -256,23 +329,32 @@ async function uploadNote() {
         return;
     }
     
+    const btn = event.currentTarget;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
+    btn.disabled = true;
+    
     try {
         const response = await fetch('/api/notes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title, subject, content })
         });
+        
         if (response.ok) {
-            alert('Note uploaded successfully!');
-            document.getElementById('noteTitle').value = '';
-            document.getElementById('noteSubject').value = '';
-            document.getElementById('noteContent').value = '';
+            alert('✓ Note uploaded successfully!');
+            if (document.getElementById('noteTitle')) document.getElementById('noteTitle').value = '';
+            if (document.getElementById('noteSubject')) document.getElementById('noteSubject').value = '';
+            if (document.getElementById('noteContent')) document.getElementById('noteContent').value = '';
             loadNotes();
         } else {
             alert('Error uploading note');
         }
     } catch (e) {
         alert('Error: ' + e.message);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
 }
 
@@ -281,19 +363,22 @@ async function uploadNote() {
 async function loadAssignments() {
     try {
         const response = await fetch('/api/assignments');
+        if (!response.ok) throw new Error('Failed to load assignments');
         const assignments = await response.json();
         const container = document.getElementById('assignmentsList');
+        
         if (!container) return;
         
         if (assignments.length === 0) {
-            container.innerHTML = '<div class="upload-container"><p>No assignments yet.</p></div>';
+            container.innerHTML = '<div class="upload-container"><p>📋 No assignments yet.</p></div>';
             return;
         }
+        
         container.innerHTML = assignments.map(ass => `
             <div class="upload-container" style="margin-bottom: 20px;">
-                <h3>${escapeHtml(ass.title)}</h3>
+                <h3>📝 ${escapeHtml(ass.title)}</h3>
                 <p>${escapeHtml(ass.description)}</p>
-                <p><strong>Due:</strong> ${new Date(ass.due_date).toLocaleString()}</p>
+                <p><strong>Due:</strong> ${formatDateTime(ass.due_date)}</p>
                 <p><strong>Max Score:</strong> ${ass.max_score}</p>
                 ${!ass.submitted ? `
                     <textarea id="submission-${ass.id}" placeholder="Write your submission here..." style="width:100%; margin:10px 0; padding:10px; border:2px solid var(--border); border-radius:12px;"></textarea>
@@ -302,31 +387,43 @@ async function loadAssignments() {
             </div>
         `).join('');
     } catch (e) {
-        console.error(e);
+        console.error('Error loading assignments:', e);
     }
 }
 
 async function submitAssignment(assignmentId) {
     const content = document.getElementById(`submission-${assignmentId}`).value;
+    
     if (!content) {
-        alert('Please write your submission');
+        alert('Please write your submission before submitting');
         return;
     }
+    
+    const btn = event.currentTarget;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
+    btn.disabled = true;
+    
     try {
         const response = await fetch(`/api/assignments/${assignmentId}/submit`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content })
         });
+        
         if (response.ok) {
-            alert('Assignment submitted successfully!');
+            alert('✓ Assignment submitted successfully!');
             loadAssignments();
-            loadStudentStats();
+            if (typeof loadStudentStats === 'function') loadStudentStats();
         } else {
-            alert('Submission failed');
+            const error = await response.json();
+            alert('Submission failed: ' + (error.error || 'Unknown error'));
         }
     } catch (e) {
         alert('Error: ' + e.message);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
 }
 
@@ -336,29 +433,39 @@ async function publishAssignment() {
     const dueDate = document.getElementById('assignDueDate')?.value;
     const description = document.getElementById('assignDesc')?.value;
     const maxScore = document.getElementById('assignMaxScore')?.value;
-
+    
     if (!title || !dueDate) {
         alert('Please fill in title and due date');
         return;
     }
-
+    
+    const btn = event.currentTarget;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publishing...';
+    btn.disabled = true;
+    
     try {
         const response = await fetch('/api/assignments', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title, subject, due_date: dueDate, description, max_score: maxScore })
         });
+        
         const data = await response.json();
+        
         if (data.success) {
-            alert('Assignment published successfully!');
-            document.getElementById('assignTitle').value = '';
-            document.getElementById('assignDesc').value = '';
-            loadTeacherStats();
+            alert('✓ Assignment published successfully!');
+            if (document.getElementById('assignTitle')) document.getElementById('assignTitle').value = '';
+            if (document.getElementById('assignDesc')) document.getElementById('assignDesc').value = '';
+            if (typeof loadTeacherStats === 'function') loadTeacherStats();
         } else {
             alert('Error publishing assignment');
         }
     } catch (e) {
         alert('Error: ' + e.message);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
 }
 
@@ -367,30 +474,35 @@ async function publishAssignment() {
 async function loadQuizzes() {
     try {
         const response = await fetch('/api/quizzes');
+        if (!response.ok) throw new Error('Failed to load quizzes');
         const quizzes = await response.json();
         const selector = document.getElementById('quizSelector');
+        
         if (!selector) return;
         
         if (quizzes.length === 0) {
             selector.innerHTML = '<p>No quizzes available.</p>';
             return;
         }
+        
         selector.innerHTML = `
             <select id="quizSelect" onchange="selectQuiz(this.value)" style="width:100%; padding:15px; margin-bottom:20px; border-radius:12px; border:2px solid var(--border);">
-                <option value="">Select a quiz to take</option>
+                <option value="">-- Select a quiz to take --</option>
                 ${quizzes.map(q => `<option value="${q.id}" ${q.attempted ? 'disabled' : ''}>${escapeHtml(q.title)} (${q.subject}) - ${q.question_count} questions${q.attempted ? ' ✓ Completed' : ''}</option>`).join('')}
             </select>
             <div id="quizQuestions"></div>
         `;
     } catch (e) {
-        console.error(e);
+        console.error('Error loading quizzes:', e);
     }
 }
 
 async function selectQuiz(quizId) {
     if (!quizId) return;
+    
     try {
         const response = await fetch(`/api/quizzes/${quizId}/take`);
+        if (!response.ok) throw new Error('Failed to load quiz');
         currentQuiz = await response.json();
         currentQuestionIndex = 0;
         answers = {};
@@ -405,11 +517,17 @@ function displayQuestion() {
         if (currentQuiz && currentQuiz.questions.length > 0) submitQuiz();
         return;
     }
+    
     const q = currentQuiz.questions[currentQuestionIndex];
-    document.getElementById('quizCountDisplay').innerHTML = `Question ${currentQuestionIndex + 1} of ${currentQuiz.questions.length}`;
-    document.getElementById('quizProgress').style.width = `${((currentQuestionIndex + 1) / currentQuiz.questions.length) * 100}%`;
-
+    const countDisplay = document.getElementById('quizCountDisplay');
+    const progressBar = document.getElementById('quizProgress');
+    
+    if (countDisplay) countDisplay.innerHTML = `Question ${currentQuestionIndex + 1} of ${currentQuiz.questions.length}`;
+    if (progressBar) progressBar.style.width = `${((currentQuestionIndex + 1) / currentQuiz.questions.length) * 100}%`;
+    
     const container = document.getElementById('quizQuestions');
+    if (!container) return;
+    
     container.innerHTML = `
         <h2 class="q-text">${escapeHtml(q.text)}</h2>
         <div class="options">
@@ -425,7 +543,8 @@ function displayQuestion() {
 
 function selectAnswer(questionId, answer) {
     answers[questionId] = answer;
-    document.querySelectorAll('.opt').forEach(opt => opt.classList.remove('selected'));
+    const opts = document.querySelectorAll('.opt');
+    opts.forEach(opt => opt.classList.remove('selected'));
     if (event && event.currentTarget) event.currentTarget.classList.add('selected');
 }
 
@@ -441,12 +560,17 @@ async function submitQuiz() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ answers })
         });
+        
         const result = await response.json();
-        alert(`Quiz completed! Your score: ${result.score.toFixed(1)}%`);
+        alert(`🎉 Quiz completed! Your score: ${result.score.toFixed(1)}%`);
         loadQuizzes();
-        loadStudentStats();
-        document.getElementById('quizQuestions').innerHTML = '<p style="text-align:center;">Quiz submitted! Select another quiz to continue.</p>';
-        document.getElementById('quizSelect').value = '';
+        if (typeof loadStudentStats === 'function') loadStudentStats();
+        
+        const questionsDiv = document.getElementById('quizQuestions');
+        if (questionsDiv) questionsDiv.innerHTML = '<p style="text-align:center;">✓ Quiz submitted! Select another quiz to continue.</p>';
+        
+        const quizSelect = document.getElementById('quizSelect');
+        if (quizSelect) quizSelect.value = '';
     } catch (e) {
         alert('Error submitting quiz: ' + e.message);
     }
@@ -472,19 +596,26 @@ async function publishQuestion() {
     rows.forEach((row, idx) => {
         if (row.classList.contains('active')) correctAnswer = String.fromCharCode(65 + idx);
     });
-
+    
     if (!title || !questionText) {
         alert('Please fill in quiz title and question');
         return;
     }
-
+    
+    const btn = event.currentTarget;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding...';
+    btn.disabled = true;
+    
     try {
         const quizResponse = await fetch('/api/quizzes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title, subject, description: questionText })
         });
+        
         const quizData = await quizResponse.json();
+        
         if (quizData.success) {
             await fetch(`/api/quizzes/${quizData.id}/questions`, {
                 method: 'POST',
@@ -498,16 +629,20 @@ async function publishQuestion() {
                     correct_answer: correctAnswer
                 })
             });
-            alert('Question added successfully!');
-            document.getElementById('qText').value = '';
-            document.getElementById('optA').value = '';
-            document.getElementById('optB').value = '';
-            document.getElementById('optC').value = '';
-            document.getElementById('optD').value = '';
-            loadTeacherStats();
+            
+            alert('✓ Question added successfully!');
+            if (document.getElementById('qText')) document.getElementById('qText').value = '';
+            if (document.getElementById('optA')) document.getElementById('optA').value = '';
+            if (document.getElementById('optB')) document.getElementById('optB').value = '';
+            if (document.getElementById('optC')) document.getElementById('optC').value = '';
+            if (document.getElementById('optD')) document.getElementById('optD').value = '';
+            if (typeof loadTeacherStats === 'function') loadTeacherStats();
         }
     } catch (e) {
         alert('Error: ' + e.message);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
 }
 
@@ -516,7 +651,9 @@ async function publishQuestion() {
 async function loadStudentStats() {
     try {
         const response = await fetch('/api/stats');
+        if (!response.ok) throw new Error('Failed to load stats');
         const stats = await response.json();
+        
         const pendingEl = document.getElementById('pendingCount');
         const avgEl = document.getElementById('avgScore');
         const quizEl = document.getElementById('quizCount');
@@ -527,7 +664,7 @@ async function loadStudentStats() {
         if (quizEl) quizEl.textContent = stats.completed_quizzes || 0;
         if (statsEl) statsEl.innerHTML = `You have ${stats.pending_assignments || 0} pending assignments and ${stats.completed_quizzes || 0} completed quizzes.`;
     } catch (e) {
-        console.error(e);
+        console.error('Error loading student stats:', e);
     }
 }
 
@@ -536,7 +673,9 @@ async function loadStudentStats() {
 async function loadTeacherStats() {
     try {
         const response = await fetch('/api/stats');
+        if (!response.ok) throw new Error('Failed to load stats');
         const stats = await response.json();
+        
         const assignmentsEl = document.getElementById('assignmentsCount');
         const quizzesEl = document.getElementById('quizzesCount');
         const submissionsEl = document.getElementById('submissionsCount');
@@ -549,81 +688,101 @@ async function loadTeacherStats() {
         if (studentsEl) studentsEl.textContent = stats.students || 0;
         if (statsEl) statsEl.innerHTML = `You have ${stats.submissions || 0} pending submissions to grade`;
     } catch (e) {
-        console.error(e);
+        console.error('Error loading teacher stats:', e);
     }
 }
 
 async function loadSubmissions() {
     try {
         const response = await fetch('/api/submissions');
+        if (!response.ok) throw new Error('Failed to load submissions');
         const submissions = await response.json();
         const tbody = document.getElementById('submissionsList');
+        
         if (!tbody) return;
         
         if (submissions.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5">No submissions yet</td></tr>';
             return;
         }
-        tbody.innerHTML = submissions.filter(s => !s.graded).map(sub => `
+        
+        const pendingSubmissions = submissions.filter(s => !s.graded);
+        tbody.innerHTML = pendingSubmissions.map(sub => `
             <tr>
                 <td>${escapeHtml(sub.student)}</td>
                 <td>${escapeHtml(sub.assignment_title)}</td>
-                <td>${new Date(sub.submitted_at).toLocaleDateString()}</td>
+                <td>${formatDateTime(sub.submitted_at)}</td>
                 <td><input type="number" class="score-input" id="score-${sub.id}" placeholder="Score"></td>
                 <td><button class="btn-save" onclick="gradeSubmission(${sub.id})">Save Grade</button></td>
             </tr>
         `).join('');
     } catch (e) {
-        console.error(e);
+        console.error('Error loading submissions:', e);
     }
 }
 
 async function gradeSubmission(submissionId) {
     const scoreInput = document.getElementById(`score-${submissionId}`);
     const score = scoreInput.value;
+    
     if (score === "" || score < 0 || score > 100) {
         alert("Please enter a valid score between 0 and 100");
         return;
     }
+    
+    const btn = event.currentTarget;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+    btn.disabled = true;
+    
     try {
         const response = await fetch(`/api/submissions/${submissionId}/grade`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ score: parseFloat(score) })
         });
+        
         if (response.ok) {
-            alert('Grade saved successfully!');
+            alert('✓ Grade saved successfully!');
             loadSubmissions();
-            loadTeacherStats();
+            if (typeof loadTeacherStats === 'function') loadTeacherStats();
+        } else {
+            alert('Error saving grade');
         }
     } catch (e) {
-        alert('Error saving grade');
+        alert('Error: ' + e.message);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
 }
 
 async function loadPendingGrading() {
     try {
         const response = await fetch('/api/submissions');
+        if (!response.ok) throw new Error('Failed to load submissions');
         const submissions = await response.json();
         const pending = submissions.filter(s => !s.graded);
         const container = document.getElementById('pendingGrading');
+        
         if (!container) return;
         
         if (pending.length === 0) {
             container.innerHTML = '<li>No pending submissions</li>';
             return;
         }
+        
         container.innerHTML = pending.slice(0, 5).map(s => `
             <li>
                 <div>
                     <span class="item-title">${escapeHtml(s.student)} - ${escapeHtml(s.assignment_title)}</span>
-                    <div class="item-date">Submitted: ${new Date(s.submitted_at).toLocaleDateString()}</div>
+                    <div class="item-date">Submitted: ${formatDate(s.submitted_at)}</div>
                 </div>
                 <span class="item-status status-pending">Pending</span>
             </li>
         `).join('');
     } catch (e) {
-        console.error(e);
+        console.error('Error loading pending grading:', e);
     }
 }
 
@@ -631,10 +790,12 @@ async function loadPendingGrading() {
 
 async function loadAdminStats() {
     try {
-        const teachersRes = await fetch('/api/teachers');
-        const studentsRes = await fetch('/api/students');
-        const assignmentsRes = await fetch('/api/assignments');
-        const quizzesRes = await fetch('/api/quizzes');
+        const [teachersRes, studentsRes, assignmentsRes, quizzesRes] = await Promise.all([
+            fetch('/api/teachers'),
+            fetch('/api/students'),
+            fetch('/api/assignments'),
+            fetch('/api/quizzes')
+        ]);
         
         const teachers = await teachersRes.json();
         const students = await studentsRes.json();
@@ -653,44 +814,50 @@ async function loadAdminStats() {
         if (quizEl) quizEl.textContent = quizzes.length;
         if (statsEl) statsEl.innerHTML = `Managing ${teachers.length} teachers and ${students.length} students`;
     } catch (e) {
-        console.error(e);
+        console.error('Error loading admin stats:', e);
     }
 }
 
 async function loadTeachers() {
     try {
         const response = await fetch('/api/teachers');
+        if (!response.ok) throw new Error('Failed to load teachers');
         const teachers = await response.json();
         const tbody = document.getElementById('teachersList');
+        
         if (!tbody) return;
         
         if (teachers.length === 0) {
             tbody.innerHTML = '<tr><td colspan="3">No teachers yet</td></tr>';
             return;
         }
+        
         tbody.innerHTML = teachers.map(t => `
             <tr>
                 <td>${escapeHtml(t.full_name)}</td>
                 <td>${escapeHtml(t.email)}</td>
-                <td>${new Date(t.created_at).toLocaleDateString()}</td>
+                <td>${formatDate(t.created_at)}</td>
             </tr>
         `).join('');
     } catch (e) {
-        console.error(e);
+        console.error('Error loading teachers:', e);
     }
 }
 
 async function loadStudents() {
     try {
         const response = await fetch('/api/students');
+        if (!response.ok) throw new Error('Failed to load students');
         const students = await response.json();
         const tbody = document.getElementById('studentsList');
+        
         if (!tbody) return;
         
         if (students.length === 0) {
             tbody.innerHTML = '<tr><td colspan="3">No students yet</td></tr>';
             return;
         }
+        
         tbody.innerHTML = students.map(s => `
             <tr>
                 <td>${escapeHtml(s.full_name)}</td>
@@ -699,7 +866,7 @@ async function loadStudents() {
             </tr>
         `).join('');
     } catch (e) {
-        console.error(e);
+        console.error('Error loading students:', e);
     }
 }
 
@@ -713,6 +880,11 @@ async function addTeacher() {
         return;
     }
     
+    const btn = event.currentTarget;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding...';
+    btn.disabled = true;
+    
     try {
         const response = await fetch('/api/teachers', {
             method: 'POST',
@@ -721,10 +893,10 @@ async function addTeacher() {
         });
         
         if (response.ok) {
-            alert('Teacher added successfully! Default password: password123');
-            document.getElementById('teacherName').value = '';
-            document.getElementById('teacherEmail').value = '';
-            document.getElementById('teacherUsername').value = '';
+            alert('✓ Teacher added successfully! Default password: password123');
+            if (document.getElementById('teacherName')) document.getElementById('teacherName').value = '';
+            if (document.getElementById('teacherEmail')) document.getElementById('teacherEmail').value = '';
+            if (document.getElementById('teacherUsername')) document.getElementById('teacherUsername').value = '';
             loadTeachers();
             loadAdminStats();
         } else {
@@ -732,6 +904,9 @@ async function addTeacher() {
         }
     } catch (e) {
         alert('Error: ' + e.message);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
 }
 
@@ -745,6 +920,7 @@ function saveSettings() {
 window.onclick = function(event) {
     const timetableModal = document.getElementById('timetableModal');
     const noteModal = document.getElementById('noteModal');
+    
     if (event.target === timetableModal) closeTimetableModal();
     if (event.target === noteModal) closeNoteModal();
 };
@@ -766,6 +942,12 @@ if (searchInput) {
 document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname;
     
+    // Restore last active section
+    const lastSection = localStorage.getItem('lastSection');
+    if (lastSection && document.getElementById(lastSection)) {
+        showSection(lastSection);
+    }
+    
     if (path.includes('/student')) {
         loadStudentStats();
         loadTimetable();
@@ -783,6 +965,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadAdminStats();
         loadTeachers();
         loadStudents();
+        
         // Initialize charts if on admin page
         if (typeof Chart !== 'undefined') {
             const ctx = document.getElementById('activityChart')?.getContext('2d');
@@ -795,11 +978,38 @@ document.addEventListener('DOMContentLoaded', () => {
                             label: 'Active Users',
                             data: [45, 62, 78, 94],
                             borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
                             tension: 0.4,
                             fill: true
                         }]
                     },
-                    options: { responsive: true }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+            
+            const pieCtx = document.getElementById('activityDistChart')?.getContext('2d');
+            if (pieCtx) {
+                new Chart(pieCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Students', 'Teachers', 'Admins'],
+                        datasets: [{
+                            data: [75, 20, 5],
+                            backgroundColor: ['#3b82f6', '#facc15', '#ef4444']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true
+                    }
                 });
             }
         }

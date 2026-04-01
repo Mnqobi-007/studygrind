@@ -3,7 +3,9 @@ from flask_login import login_required, current_user
 from models import db, Note, CalendarEvent, Assignment, Submission, Quiz, Question, QuizAttempt, QuizAnswer, User, Timetable
 from datetime import datetime
 import os
+import base64
 from werkzeug.utils import secure_filename
+from sqlalchemy import func
 
 api_bp = Blueprint('api', __name__)
 
@@ -27,7 +29,7 @@ def get_notes():
         'teacher': n.author.full_name,
         'created_at': n.created_at.isoformat(),
         'file_path': n.file_path,
-        'file_url': f"/api/static/uploads/{n.file_path}" if n.file_path else None
+        'file_url': n.file_path if n.file_path else None
     } for n in notes])
 
 @api_bp.route('/notes/<int:note_id>', methods=['GET'])
@@ -43,7 +45,7 @@ def get_note_details(note_id):
         'teacher': note.author.full_name,
         'created_at': note.created_at.isoformat(),
         'file_path': note.file_path,
-        'file_url': f"/api/static/uploads/{note.file_path}" if note.file_path else None
+        'file_url': note.file_path if note.file_path else None
     })
 
 @api_bp.route('/notes', methods=['POST'])
@@ -359,10 +361,12 @@ def get_stats():
             ~Assignment.submissions.any(student_id=current_user.id)
         ).count()
         
+        avg_score = db.session.query(func.avg(QuizAttempt.score)).filter_by(student_id=current_user.id).scalar() or 0
+        
         return jsonify({
             'pending_assignments': pending_assignments,
             'completed_quizzes': QuizAttempt.query.filter_by(student_id=current_user.id).count(),
-            'avg_score': db.session.query(db.func.avg(QuizAttempt.score)).filter_by(student_id=current_user.id).scalar() or 0
+            'avg_score': avg_score
         })
     
     return jsonify({})
@@ -471,10 +475,3 @@ def delete_timetable_entry(entry_id):
         'success': True,
         'message': 'Timetable entry deleted successfully'
     })
-
-# ==================== FILE SERVING ====================
-@api_bp.route('/static/uploads/<filename>')
-@login_required
-def serve_uploaded_file(filename):
-    upload_dir = os.path.join(current_app.root_path, 'static', 'uploads')
-    return send_from_directory(upload_dir, filename)

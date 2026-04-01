@@ -1,18 +1,20 @@
-from flask import Flask, render_template, send_from_directory, redirect, url_for
+from flask import Flask, render_template, send_from_directory, redirect, url_for, jsonify
 from flask_login import LoginManager, login_required, current_user
 from flask_migrate import Migrate
-from config import Config
+from config import config
 from models import db, User
 from auth import auth_bp, init_oauth
 from api import api_bp
 import os
+import sys
 
+# Determine environment
+env = os.environ.get('FLASK_ENV', 'development')
 app = Flask(__name__)
-app.config.from_object(Config)
+app.config.from_object(config[env])
 
-# Initialize extensions FIRST
+# Initialize extensions
 db.init_app(app)
-migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
@@ -24,9 +26,10 @@ init_oauth(app)
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(api_bp, url_prefix='/api')
 
-# Create upload folders AFTER config is loaded
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs('static/uploads', exist_ok=True)
+# Create upload folders if not on Vercel
+if not app.config.get('VERCEL', False):
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs('static/uploads', exist_ok=True)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -36,7 +39,7 @@ def load_user(user_id):
 @app.route('/uploads/<path:filename>')
 @login_required
 def uploaded_file(filename):
-    """Serve files from uploads folder"""
+    """Serve files from uploads folder (local only)"""
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 # ==================== PAGE ROUTES ====================
@@ -77,9 +80,15 @@ def admin_dashboard():
 def serve_static(filename):
     return send_from_directory('static', filename)
 
-# Create database and seed data
+# Health check endpoint for Vercel
+@app.route('/health')
+def health_check():
+    return jsonify({'status': 'healthy', 'vercel': app.config.get('VERCEL', False)})
+
+# Create database tables and seed data
 def init_db():
     with app.app_context():
+        # Create tables
         db.create_all()
         
         # Create admin user if not exists
@@ -122,6 +131,9 @@ def init_db():
             print("Student:  alex@studygrind.com / student123")
             print("=" * 50)
 
-if __name__ == '__main__':
+# Initialize database on startup (for local development)
+if not app.config.get('VERCEL', False):
     init_db()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+
+# Vercel requires the app to be exposed
+app = app
