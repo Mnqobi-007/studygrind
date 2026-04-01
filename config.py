@@ -6,10 +6,9 @@ load_dotenv()
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     
-    # Database - Use PostgreSQL on Vercel, SQLite locally
-    # Vercel requires PostgreSQL (SQLite won't work on serverless)
+    # Database - Use Supabase PostgreSQL on Vercel
     if os.environ.get('VERCEL', 'false').lower() == 'true':
-        # On Vercel, we must use PostgreSQL
+        # On Vercel, use Supabase PostgreSQL
         DATABASE_URL = os.environ.get('DATABASE_URL')
         if not DATABASE_URL:
             raise ValueError("DATABASE_URL is required for Vercel deployment")
@@ -22,11 +21,21 @@ class Config:
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_pre_ping': True,
         'pool_recycle': 300,
+        'pool_size': 5,
+        'max_overflow': 10
     }
     
-    # File uploads - Vercel doesn't support file storage
-    # Use Vercel Blob or external service like Cloudinary
-    UPLOAD_FOLDER = '/tmp/uploads' if os.environ.get('VERCEL') else 'uploads'
+    # Supabase Storage (for file uploads)
+    SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
+    SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')
+    SUPABASE_BUCKET = os.environ.get('SUPABASE_BUCKET', 'studygrind')
+    
+    # File uploads - Use /tmp for Vercel, local for development
+    if os.environ.get('VERCEL', 'false').lower() == 'true':
+        UPLOAD_FOLDER = '/tmp/uploads'
+    else:
+        UPLOAD_FOLDER = 'uploads'
+    
     MAX_CONTENT_LENGTH = 25 * 1024 * 1024
     
     # Google OAuth Configuration
@@ -62,9 +71,8 @@ class ProductionConfig(Config):
             stream_handler.setLevel(logging.INFO)
             app.logger.addHandler(stream_handler)
             app.logger.setLevel(logging.INFO)
-            app.logger.info('StudyGrind startup on Vercel')
+            app.logger.info('StudyGrind startup on Vercel with Supabase')
 
-# Configuration dictionary
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
