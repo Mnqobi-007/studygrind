@@ -2,26 +2,29 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/index.py",
-      "use": "@vercel/python"
+      "src": "app.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxDuration": 10
+      }
+    },
+    {
+      "src": "static/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "api/index.py"
-    },
     {
       "src": "/static/(.*)",
       "dest": "/static/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "api/index.py"
+      "dest": "app.py"
     }
   ],
   "env": {
-    "SECRET_KEY": "@secret-key",
-    "DATABASE_URL": "@database-url"
+    "VERCEL": "true",
+    "FLASK_ENV": "production"
   }
 }
