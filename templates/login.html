@@ -44,7 +44,7 @@
                             <label class="checkbox-container" style="font-size: 12px;">
                                 <input type="checkbox" id="googleRememberMe" onchange="updateGoogleLoginUrl()">
                                 <span class="checkmark"></span>
-                                Stay signed in
+                                Stay signed in on this device
                             </label>
                         </div>
                     </div>
@@ -114,7 +114,6 @@
             const rememberMe = document.getElementById('googleRememberMe').checked;
             const googleBtn = document.querySelector('.social-btn.google');
             if (googleBtn) {
-                googleBtn.href = `javascript:void(0)`;
                 googleBtn.onclick = () => googleLoginWithRemember(rememberMe);
             }
         }
