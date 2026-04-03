@@ -18,7 +18,9 @@ IS_PRODUCTION = app.config.get('IS_PRODUCTION', False)
 app.config['SESSION_COOKIE_SECURE'] = IS_PRODUCTION
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['PERMANENT_SESSION_LIFETIME'] = 2592000  # 30 days
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour (changed from 30 days)
+app.config['REMEMBER_COOKIE_DURATION'] = 3600  # 1 hour
+app.config['SESSION_PERMANENT'] = False  # Session expires when browser closes
 
 # Initialize extensions
 db.init_app(app)
@@ -28,6 +30,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
+login_manager.session_protection = "strong"  # Add session protection
 
 # Initialize OAuth
 init_oauth(app)
