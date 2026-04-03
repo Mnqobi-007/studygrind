@@ -6,72 +6,11 @@ import os
 import base64
 from werkzeug.utils import secure_filename
 from sqlalchemy import func
-import requests
 
 api_bp = Blueprint('api', __name__)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'pdf', 'doc', 'docx', 'txt', 'jpg', 'png'}
-
-# Supabase storage helper functions
-def upload_to_supabase(file_data, filename, content_type):
-    """Upload file to Supabase Storage"""
-    supabase_url = current_app.config.get('SUPABASE_URL')
-    supabase_key = current_app.config.get('SUPABASE_KEY')
-    bucket = current_app.config.get('SUPABASE_BUCKET', 'studygrind')
-    
-    if not supabase_url or not supabase_key:
-        return None
-    
-    # Create storage path with user ID to organize files
-    storage_path = f"{current_user.id}/{filename}"
-    
-    headers = {
-        'Authorization': f'Bearer {supabase_key}',
-        'Content-Type': content_type
-    }
-    
-    try:
-        # Upload to Supabase Storage
-        upload_url = f"{supabase_url}/storage/v1/object/{bucket}/{storage_path}"
-        response = requests.post(upload_url, headers=headers, data=file_data)
-        
-        if response.status_code == 200 or response.status_code == 201:
-            # Return public URL
-            public_url = f"{supabase_url}/storage/v1/object/public/{bucket}/{storage_path}"
-            return public_url
-        else:
-            print(f"Supabase upload error: {response.text}")
-            return None
-    except Exception as e:
-        print(f"Error uploading to Supabase: {e}")
-        return None
-
-def delete_from_supabase(file_url):
-    """Delete file from Supabase Storage"""
-    supabase_url = current_app.config.get('SUPABASE_URL')
-    supabase_key = current_app.config.get('SUPABASE_KEY')
-    
-    if not supabase_url or not supabase_key or not file_url:
-        return False
-    
-    # Extract path from URL
-    try:
-        # URL format: https://project.supabase.co/storage/v1/object/public/bucket/path
-        path = file_url.split('/public/')[-1]
-        bucket, file_path = path.split('/', 1)
-        
-        headers = {
-            'Authorization': f'Bearer {supabase_key}'
-        }
-        
-        delete_url = f"{supabase_url}/storage/v1/object/{bucket}/{file_path}"
-        response = requests.delete(delete_url, headers=headers)
-        
-        return response.status_code == 200
-    except Exception as e:
-        print(f"Error deleting from Supabase: {e}")
-        return False
 
 # ==================== NOTES API ====================
 @api_bp.route('/notes', methods=['GET'])
@@ -127,44 +66,6 @@ def create_note():
     
     return jsonify({'success': True, 'id': note.id})
 
-@api_bp.route('/notes/upload', methods=['POST'])
-@login_required
-def upload_note_file():
-    """Upload file attachment for a note to Supabase"""
-    if not (current_user.is_teacher() or current_user.is_admin()):
-        return jsonify({'error': 'Unauthorized'}), 403
-    
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
-        filename = timestamp + filename
-        
-        # Read file data
-        file_data = file.read()
-        content_type = file.content_type or 'application/octet-stream'
-        
-        # Upload to Supabase Storage
-        file_url = upload_to_supabase(file_data, filename, content_type)
-        
-        if file_url:
-            return jsonify({
-                'success': True,
-                'file_path': file_url,
-                'file_url': file_url,
-                'message': 'File uploaded successfully'
-            })
-        else:
-            return jsonify({'error': 'Failed to upload to storage'}), 500
-    
-    return jsonify({'error': 'File type not allowed'}), 400
-
 # ==================== ASSIGNMENTS API ====================
 @api_bp.route('/assignments', methods=['GET'])
 @login_required
@@ -218,28 +119,49 @@ def submit_assignment(assignment_id):
         return jsonify({'error': 'Already submitted'}), 400
     
     data = request.get_json()
-    
-    # Handle file upload if present
-    file_url = None
-    if 'file' in request.files:
-        file = request.files['file']
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
-            filename = f"{timestamp}_{current_user.id}_{filename}"
-            file_data = file.read()
-            file_url = upload_to_supabase(file_data, filename, file.content_type)
-    
     submission = Submission(
         assignment_id=assignment_id,
         student_id=current_user.id,
         content=data.get('content'),
-        file_path=file_url or data.get('file_path')
+        file_path=data.get('file_path')
     )
     db.session.add(submission)
     db.session.commit()
     
     return jsonify({'success': True, 'id': submission.id})
+
+@api_bp.route('/submissions', methods=['GET'])
+@login_required
+def get_submissions():
+    if current_user.is_teacher():
+        submissions = Submission.query.join(Assignment).filter(Assignment.teacher_id == current_user.id).all()
+    else:
+        submissions = Submission.query.filter_by(student_id=current_user.id).all()
+    
+    return jsonify([{
+        'id': s.id,
+        'assignment_title': s.assignment.title,
+        'student': s.student.full_name,
+        'score': s.score,
+        'submitted_at': s.submitted_at.isoformat(),
+        'graded': s.score is not None
+    } for s in submissions])
+
+@api_bp.route('/submissions/<int:submission_id>/grade', methods=['POST'])
+@login_required
+def grade_submission(submission_id):
+    if not (current_user.is_teacher() or current_user.is_admin()):
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    submission = Submission.query.get_or_404(submission_id)
+    data = request.get_json()
+    
+    submission.score = data.get('score')
+    submission.feedback = data.get('feedback')
+    submission.graded_at = datetime.utcnow()
+    
+    db.session.commit()
+    return jsonify({'success': True})
 
 # ==================== QUIZZES API ====================
 @api_bp.route('/quizzes', methods=['GET'])

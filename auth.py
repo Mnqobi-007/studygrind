@@ -1,9 +1,11 @@
-from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from models import db, User
 from werkzeug.security import generate_password_hash
 from authlib.integrations.flask_client import OAuth
 import os
+import secrets
+import requests
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -15,16 +17,20 @@ def init_oauth(app):
     
     # Google OAuth only
     if app.config.get('GOOGLE_CLIENT_ID') and app.config.get('GOOGLE_CLIENT_SECRET'):
-        oauth.register(
-            name='google',
-            client_id=app.config['GOOGLE_CLIENT_ID'],
-            client_secret=app.config['GOOGLE_CLIENT_SECRET'],
-            server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-            client_kwargs={'scope': 'openid email profile'}
-        )
-        print("Google OAuth configured successfully")
+        if app.config['GOOGLE_CLIENT_ID'] and app.config['GOOGLE_CLIENT_SECRET']:
+            oauth.register(
+                name='google',
+                client_id=app.config['GOOGLE_CLIENT_ID'],
+                client_secret=app.config['GOOGLE_CLIENT_SECRET'],
+                server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+                client_kwargs={'scope': 'openid email profile'},
+                authorize_params={'access_type': 'offline', 'prompt': 'select_account'}
+            )
+            print("✓ Google OAuth configured successfully")
+        else:
+            print("✗ Google OAuth credentials found but empty")
     else:
-        print("Google OAuth not configured - missing credentials")
+        print("ℹ Google OAuth not configured - email login works fine")
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -38,7 +44,7 @@ def login():
     user = User.query.filter_by(email=email).first()
     
     if user and user.check_password(password):
-        login_user(user)
+        login_user(user, remember=data.get('remember_me', False))
         
         if user.is_admin():
             return jsonify({'success': True, 'redirect': '/admin/dashboard'})
@@ -74,6 +80,7 @@ def register():
 @login_required
 def logout():
     logout_user()
+    session.clear()
     return redirect(url_for('auth.login'))
 
 @auth_bp.route('/api/current_user')
@@ -92,27 +99,50 @@ def current_user_info():
 @auth_bp.route('/login/google')
 def google_login():
     if not oauth._clients.get('google'):
-        return "Google OAuth not configured. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env file", 400
+        flash('Google OAuth not configured', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Store the next URL in session if provided
+    next_url = request.args.get('next')
+    if next_url:
+        session['oauth_next'] = next_url
+    
     redirect_uri = url_for('auth.google_callback', _external=True)
+    print(f"Google OAuth redirect URI: {redirect_uri}")
     return oauth.google.authorize_redirect(redirect_uri)
 
 @auth_bp.route('/login/google/callback')
 def google_callback():
     try:
+        # Get the token
         token = oauth.google.authorize_access_token()
-        user_info = oauth.google.parse_id_token(token)
+        print(f"✓ Token received")
+        
+        # Get user info using the token directly
+        userinfo_endpoint = 'https://www.googleapis.com/oauth2/v3/userinfo'
+        headers = {'Authorization': f'Bearer {token["access_token"]}'}
+        response = requests.get(userinfo_endpoint, headers=headers)
+        
+        if response.status_code != 200:
+            print(f"✗ Failed to get user info: {response.status_code}")
+            flash('Failed to get user information from Google', 'error')
+            return redirect(url_for('auth.login'))
+        
+        user_info = response.json()
+        print(f"✓ User info received: {user_info.get('email')}")
         
         email = user_info.get('email')
         name = user_info.get('name', email.split('@')[0])
         
         if not email:
-            return "Email not provided by Google", 400
+            flash('Email not provided by Google', 'error')
+            return redirect(url_for('auth.login'))
         
         # Check if user exists
         user = User.query.filter_by(email=email).first()
+        
         if not user:
             # Create new user
-            import secrets
             random_password = secrets.token_urlsafe(16)
             user = User(
                 username=email.split('@')[0],
@@ -123,17 +153,33 @@ def google_callback():
             user.set_password(random_password)
             db.session.add(user)
             db.session.commit()
-            print(f"Created new user via Google OAuth: {email}")
+            print(f"✓ Created new user: {email}")
+        else:
+            print(f"✓ Existing user logged in: {email}")
         
-        login_user(user)
+        # Log the user in
+        login_user(user, remember=True)
+        
+        # Force session save
+        session.modified = True
+        
+        print(f"✓ User logged in successfully: {user.email}, Role: {user.role}")
+        
+        # Redirect based on role
+        next_url = session.pop('oauth_next', None)
+        if next_url:
+            return redirect(next_url)
         
         if user.is_admin():
-            return redirect('/admin/dashboard')
+            return redirect(url_for('admin_dashboard'))
         elif user.is_teacher():
-            return redirect('/teacher/dashboard')
+            return redirect(url_for('teacher_dashboard'))
         else:
-            return redirect('/student/dashboard')
+            return redirect(url_for('student_dashboard'))
             
     except Exception as e:
-        print(f"Google OAuth error: {e}")
-        return redirect('/auth/login')
+        print(f"✗ Google OAuth error: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Google login failed. Please try again.', 'error')
+        return redirect(url_for('auth.login'))

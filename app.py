@@ -13,11 +13,19 @@ env = os.environ.get('FLASK_ENV', 'development')
 app = Flask(__name__)
 app.config.from_object(config[env])
 
+# Add session security settings
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = 2592000  # 30 days
+
 # Initialize extensions
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'info'
 
 # Initialize OAuth
 init_oauth(app)
@@ -85,10 +93,10 @@ def serve_static(filename):
 def health_check():
     return jsonify({'status': 'healthy', 'vercel': app.config.get('VERCEL', False)})
 
-# Create database tables and seed data
-def init_db():
+# Run the app
+if __name__ == '__main__':
+    # Initialize database before running
     with app.app_context():
-        # Create tables
         db.create_all()
         
         # Create admin user if not exists
@@ -130,10 +138,6 @@ def init_db():
             print("Teacher:  harrison@studygrind.com / teacher123")
             print("Student:  alex@studygrind.com / student123")
             print("=" * 50)
-
-# Initialize database on startup (for local development)
-if not app.config.get('VERCEL', False):
-    init_db()
-
-# Vercel requires the app to be exposed
-app = app
+    
+    # Run the app
+    app.run(debug=True, host='0.0.0.0', port=5000)

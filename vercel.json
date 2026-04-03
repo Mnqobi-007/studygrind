@@ -22,9 +22,5 @@
       "src": "/(.*)",
       "dest": "app.py"
     }
-  ],
-  "env": {
-    "VERCEL": "true",
-    "FLASK_ENV": "production"
-  }
+  ]
 }
