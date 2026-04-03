@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash
+from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash, make_response
 from flask_login import login_user, logout_user, login_required, current_user
 from models import db, User
 from werkzeug.security import generate_password_hash
@@ -24,7 +24,10 @@ def init_oauth(app):
                 client_secret=app.config['GOOGLE_CLIENT_SECRET'],
                 server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
                 client_kwargs={'scope': 'openid email profile'},
-                authorize_params={'access_type': 'offline', 'prompt': 'select_account'}
+                authorize_params={
+                    'access_type': 'offline', 
+                    'prompt': 'select_account'  # Forces account selection each time
+                }
             )
             print("✓ Google OAuth configured successfully")
         else:
@@ -44,7 +47,9 @@ def login():
     user = User.query.filter_by(email=email).first()
     
     if user and user.check_password(password):
-        login_user(user, remember=data.get('remember_me', False))
+        # Use remember me from request
+        remember_me = data.get('remember_me', False)
+        login_user(user, remember=remember_me)
         
         if user.is_admin():
             return jsonify({'success': True, 'redirect': '/admin/dashboard'})
@@ -79,9 +84,20 @@ def register():
 @auth_bp.route('/logout')
 @login_required
 def logout():
+    # Clear Flask-Login session
     logout_user()
+    
+    # Clear all session data
     session.clear()
-    return redirect(url_for('auth.login'))
+    
+    # Create response
+    response = make_response(redirect(url_for('auth.login')))
+    
+    # Clear all cookies
+    response.set_cookie('session', '', expires=0, path='/')
+    response.set_cookie('remember_token', '', expires=0, path='/')
+    
+    return response
 
 @auth_bp.route('/api/current_user')
 @login_required
@@ -101,6 +117,10 @@ def google_login():
     if not oauth._clients.get('google'):
         flash('Google OAuth not configured', 'error')
         return redirect(url_for('auth.login'))
+    
+    # Get remember me preference from query parameter
+    remember_me = request.args.get('remember_me', 'false').lower() == 'true'
+    session['oauth_remember_me'] = remember_me
     
     # Store the next URL in session if provided
     next_url = request.args.get('next')
@@ -157,13 +177,16 @@ def google_callback():
         else:
             print(f"✓ Existing user logged in: {email}")
         
-        # Log the user in
-        login_user(user, remember=True)
+        # Get remember me preference
+        remember_me = session.pop('oauth_remember_me', False)
+        
+        # Log the user in with remember preference
+        login_user(user, remember=remember_me)
         
         # Force session save
         session.modified = True
         
-        print(f"✓ User logged in successfully: {user.email}, Role: {user.role}")
+        print(f"✓ User logged in successfully: {user.email}, Role: {user.role}, Remember: {remember_me}")
         
         # Redirect based on role
         next_url = session.pop('oauth_next', None)
