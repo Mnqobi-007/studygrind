@@ -6,14 +6,14 @@ load_dotenv()
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     
-    # Database - Use PostgreSQL on Vercel, SQLite locally
-    # Vercel requires PostgreSQL (SQLite won't work on serverless)
-    if os.environ.get('VERCEL', 'false').lower() == 'true':
-        # On Vercel, we must use PostgreSQL
+    # Database - Use PostgreSQL on Render, SQLite locally
+    if os.environ.get('RENDER', 'false').lower() == 'true' or os.environ.get('DATABASE_URL'):
+        # On Render, use PostgreSQL
         DATABASE_URL = os.environ.get('DATABASE_URL')
-        if not DATABASE_URL:
-            raise ValueError("DATABASE_URL is required for Vercel deployment")
-        SQLALCHEMY_DATABASE_URI = DATABASE_URL
+        if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
+            # Render uses postgres://, SQLAlchemy 1.4+ needs postgresql://
+            DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+        SQLALCHEMY_DATABASE_URI = DATABASE_URL or 'postgresql://localhost/studygrind'
     else:
         # Local development with SQLite
         SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///database.db')
@@ -22,25 +22,26 @@ class Config:
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_pre_ping': True,
         'pool_recycle': 300,
+        'pool_size': 10,
+        'max_overflow': 20
     }
     
-    # File uploads - Vercel doesn't support file storage
-    # Use Vercel Blob or external service like Cloudinary
-    UPLOAD_FOLDER = '/tmp/uploads' if os.environ.get('VERCEL') else 'uploads'
+    # File uploads - Use /tmp for Render (ephemeral storage)
+    UPLOAD_FOLDER = '/tmp/uploads' if os.environ.get('RENDER') else 'uploads'
     MAX_CONTENT_LENGTH = 25 * 1024 * 1024
     
     # Google OAuth Configuration
     GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
     GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
     
-    # App Domain (for OAuth redirects)
+    # App Domain
     APP_DOMAIN = os.environ.get('APP_DOMAIN', 'http://localhost:5000')
     
     # Session
     REMEMBER_COOKIE_DURATION = int(os.environ.get('REMEMBER_COOKIE_DURATION', 2592000))
     
-    # Vercel specific
-    VERCEL = os.environ.get('VERCEL', 'false').lower() == 'true'
+    # Render specific
+    RENDER = os.environ.get('RENDER', 'false').lower() == 'true'
 
 class DevelopmentConfig(Config):
     """Development configuration"""
@@ -62,9 +63,8 @@ class ProductionConfig(Config):
             stream_handler.setLevel(logging.INFO)
             app.logger.addHandler(stream_handler)
             app.logger.setLevel(logging.INFO)
-            app.logger.info('StudyGrind startup on Vercel')
+            app.logger.info('StudyGrind startup on Render')
 
-# Configuration dictionary
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
