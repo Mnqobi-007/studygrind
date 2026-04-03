@@ -176,3 +176,23 @@ document.addEventListener('DOMContentLoaded', () => {
         forgotForm.addEventListener('submit', handleForgot);
     }
 });
+
+// Check session on page load
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if user is returning from Google OAuth
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('logged_out') === 'true') {
+        // Clear any remaining session data
+        localStorage.clear();
+        sessionStorage.clear();
+    }
+    
+    // Set a flag to indicate this is a fresh page load
+    sessionStorage.setItem('pageLoaded', Date.now().toString());
+});
+
+// Clean up on before unload (optional)
+window.addEventListener('beforeunload', () => {
+    // Don't clear everything, just mark that we're leaving
+    sessionStorage.setItem('lastVisit', Date.now().toString());
+});
