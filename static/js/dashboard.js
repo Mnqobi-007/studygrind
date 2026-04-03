@@ -1015,3 +1015,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+// ==================== LOGOUT FUNCTION ====================
+window.logout = async function() {
+    if (confirm('Are you sure you want to logout? This will clear your session.')) {
+        try {
+            // Show loading state
+            const logoutBtn = event?.currentTarget;
+            if (logoutBtn) {
+                const originalText = logoutBtn.innerHTML;
+                logoutBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Logging out...';
+                logoutBtn.disabled = true;
+            }
+            
+            // Clear all local storage
+            localStorage.clear();
+            
+            // Clear all session storage
+            sessionStorage.clear();
+            
+            // Clear any cookies
+            document.cookie.split(";").forEach(function(c) {
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            });
+            
+            // Call logout endpoint
+            const response = await fetch('/auth/logout');
+            
+            // Force hard redirect without cache
+            window.location.replace('/auth/login');
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Fallback redirect
+            window.location.href = '/auth/logout';
+        }
+    }
+};
+
+// Also add a function for Google login with remember me option
+function googleLoginWithRemember(rememberMe = false) {
+    const url = `/auth/login/google?remember_me=${rememberMe}`;
+    window.location.href = url;
+}
