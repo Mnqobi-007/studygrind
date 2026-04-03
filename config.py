@@ -1,33 +1,42 @@
 import os
 from dotenv import load_dotenv
+import sys
 
 load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
     
-    # Database - Use PostgreSQL on Render, SQLite locally
-    if os.environ.get('RENDER', 'false').lower() == 'true' or os.environ.get('DATABASE_URL'):
-        # On Render, use PostgreSQL
-        DATABASE_URL = os.environ.get('DATABASE_URL')
-        if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
-            # Render uses postgres://, SQLAlchemy 1.4+ needs postgresql://
-            DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-        SQLALCHEMY_DATABASE_URI = DATABASE_URL or 'postgresql://localhost/studygrind'
+    # Database configuration
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    
+    if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
+        # Render uses postgres://, SQLAlchemy needs postgresql://
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    
+    if DATABASE_URL:
+        # Use PostgreSQL (production)
+        SQLALCHEMY_DATABASE_URI = DATABASE_URL
+        print(f"📊 Using PostgreSQL database")
     else:
-        # Local development with SQLite
-        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///database.db')
+        # Use SQLite (local development)
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///database.db'
+        print(f"📁 Using SQLite database (local development)")
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_pre_ping': True,
         'pool_recycle': 300,
-        'pool_size': 10,
-        'max_overflow': 20
     }
     
-    # File uploads - Use /tmp for Render (ephemeral storage)
-    UPLOAD_FOLDER = '/tmp/uploads' if os.environ.get('RENDER') else 'uploads'
+    # File uploads
+    if os.environ.get('RENDER') or os.environ.get('RENDER_GIT_COMMIT'):
+        # On Render, use /tmp for ephemeral storage
+        UPLOAD_FOLDER = '/tmp/uploads'
+        print(f"📁 Using /tmp/uploads for file storage (Render)")
+    else:
+        UPLOAD_FOLDER = 'uploads'
+    
     MAX_CONTENT_LENGTH = 25 * 1024 * 1024
     
     # Google OAuth Configuration
@@ -40,8 +49,8 @@ class Config:
     # Session
     REMEMBER_COOKIE_DURATION = int(os.environ.get('REMEMBER_COOKIE_DURATION', 2592000))
     
-    # Render specific
-    RENDER = os.environ.get('RENDER', 'false').lower() == 'true'
+    # Environment detection
+    IS_PRODUCTION = bool(DATABASE_URL) or os.environ.get('RENDER')
 
 class DevelopmentConfig(Config):
     """Development configuration"""
