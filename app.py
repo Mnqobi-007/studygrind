@@ -14,7 +14,8 @@ app = Flask(__name__)
 app.config.from_object(config[env])
 
 # Add session security settings
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get('RENDER', 'false').lower() == 'true'
+IS_PRODUCTION = app.config.get('IS_PRODUCTION', False)
+app.config['SESSION_COOKIE_SECURE'] = IS_PRODUCTION
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = 2592000  # 30 days
@@ -35,10 +36,8 @@ init_oauth(app)
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(api_bp, url_prefix='/api')
 
-# Create upload folders if not on Render
-if not app.config.get('RENDER', False):
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    os.makedirs('static/uploads', exist_ok=True)
+# Create upload folders
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -48,7 +47,7 @@ def load_user(user_id):
 @app.route('/uploads/<path:filename>')
 @login_required
 def uploaded_file(filename):
-    """Serve files from uploads folder (local only)"""
+    """Serve files from uploads folder"""
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 # ==================== PAGE ROUTES ====================
@@ -89,63 +88,69 @@ def admin_dashboard():
 def serve_static(filename):
     return send_from_directory('static', filename)
 
-# Health check endpoint for Render
+# Health check endpoint
 @app.route('/health')
 def health_check():
-    return jsonify({'status': 'healthy', 'render': app.config.get('RENDER', False)})
+    return jsonify({
+        'status': 'healthy',
+        'database': str(db.engine.url).split('@')[0] + '@***' if db.engine.url else 'unknown',
+        'environment': 'production' if IS_PRODUCTION else 'development'
+    })
 
-# Initialize database on Render
+# Initialize database
 def init_db():
     with app.app_context():
-        db.create_all()
-        
-        # Create admin user if not exists
-        if not User.query.filter_by(role='admin').first():
-            admin = User(
-                username='admin',
-                email='admin@studygrind.com',
-                role='admin',
-                full_name='System Administrator'
-            )
-            admin.set_password('admin123')
-            db.session.add(admin)
+        try:
+            # Create tables
+            db.create_all()
+            print("✅ Database tables created/verified")
             
-            # Create sample teacher
-            teacher = User(
-                username='prof_harrison',
-                email='harrison@studygrind.com',
-                role='teacher',
-                full_name='Prof. Harrison'
-            )
-            teacher.set_password('teacher123')
-            db.session.add(teacher)
-            
-            # Create sample student
-            student = User(
-                username='alex_smith',
-                email='alex@studygrind.com',
-                role='student',
-                full_name='Alex Smith'
-            )
-            student.set_password('student123')
-            db.session.add(student)
-            
-            db.session.commit()
-            print("=" * 50)
-            print("Database initialized with sample users!")
-            print("=" * 50)
-            print("Admin:    admin@studygrind.com / admin123")
-            print("Teacher:  harrison@studygrind.com / teacher123")
-            print("Student:  alex@studygrind.com / student123")
-            print("=" * 50)
+            # Only create sample data in development
+            if not IS_PRODUCTION:
+                if not User.query.filter_by(role='admin').first():
+                    admin = User(
+                        username='admin',
+                        email='admin@studygrind.com',
+                        role='admin',
+                        full_name='System Administrator'
+                    )
+                    admin.set_password('admin123')
+                    db.session.add(admin)
+                    
+                    teacher = User(
+                        username='prof_harrison',
+                        email='harrison@studygrind.com',
+                        role='teacher',
+                        full_name='Prof. Harrison'
+                    )
+                    teacher.set_password('teacher123')
+                    db.session.add(teacher)
+                    
+                    student = User(
+                        username='alex_smith',
+                        email='alex@studygrind.com',
+                        role='student',
+                        full_name='Alex Smith'
+                    )
+                    student.set_password('student123')
+                    db.session.add(student)
+                    
+                    db.session.commit()
+                    print("=" * 50)
+                    print("📝 Sample users created for development")
+                    print("=" * 50)
+                    print("Admin:    admin@studygrind.com / admin123")
+                    print("Teacher:  harrison@studygrind.com / teacher123")
+                    print("Student:  alex@studygrind.com / student123")
+                    print("=" * 50)
+            else:
+                print("🌐 Production environment - no sample data created")
+                
+        except Exception as e:
+            print(f"⚠️ Database initialization error: {e}")
 
-# Initialize database on startup
-if __name__ != '__main__':
-    # When running on Render (gunicorn)
-    init_db()
-else:
-    # Local development
-    init_db()
+# Initialize database
+init_db()
 
 # For gunicorn (Render)
 app = app
