@@ -34,10 +34,19 @@
                     </div>
 
                     <div class="social-auth">
-                        <a href="{{ url_for('auth.google_login') }}" class="social-btn google">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="">
-                            <span>Continue with Google</span>
-                        </a>
+                        <div style="margin-bottom: 10px;">
+                            <a href="javascript:void(0)" onclick="googleLoginWithRemember(false)" class="social-btn google">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="">
+                                <span>Continue with Google</span>
+                            </a>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px;">
+                            <label class="checkbox-container" style="font-size: 12px;">
+                                <input type="checkbox" id="googleRememberMe" onchange="updateGoogleLoginUrl()">
+                                <span class="checkmark"></span>
+                                Stay signed in
+                            </label>
+                        </div>
                     </div>
 
                     <div class="divider"><span>OR EMAIL</span></div>
@@ -100,5 +109,25 @@
     </div>
 
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script>
+        function updateGoogleLoginUrl() {
+            const rememberMe = document.getElementById('googleRememberMe').checked;
+            const googleBtn = document.querySelector('.social-btn.google');
+            if (googleBtn) {
+                googleBtn.href = `javascript:void(0)`;
+                googleBtn.onclick = () => googleLoginWithRemember(rememberMe);
+            }
+        }
+        
+        function googleLoginWithRemember(rememberMe) {
+            const url = `/auth/login/google?remember_me=${rememberMe}`;
+            window.location.href = url;
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateGoogleLoginUrl();
+        });
+    </script>
 </body>
 </html>
