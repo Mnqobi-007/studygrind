@@ -14,13 +14,14 @@ app = Flask(__name__)
 app.config.from_object(config[env])
 
 # Add session security settings
-app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('RENDER', 'false').lower() == 'true'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['PERMANENT_SESSION_LIFETIME'] = 2592000  # 30 days
 
 # Initialize extensions
 db.init_app(app)
+migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
@@ -34,8 +35,8 @@ init_oauth(app)
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(api_bp, url_prefix='/api')
 
-# Create upload folders if not on Vercel
-if not app.config.get('VERCEL', False):
+# Create upload folders if not on Render
+if not app.config.get('RENDER', False):
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     os.makedirs('static/uploads', exist_ok=True)
 
@@ -88,14 +89,13 @@ def admin_dashboard():
 def serve_static(filename):
     return send_from_directory('static', filename)
 
-# Health check endpoint for Vercel
+# Health check endpoint for Render
 @app.route('/health')
 def health_check():
-    return jsonify({'status': 'healthy', 'vercel': app.config.get('VERCEL', False)})
+    return jsonify({'status': 'healthy', 'render': app.config.get('RENDER', False)})
 
-# Run the app
-if __name__ == '__main__':
-    # Initialize database before running
+# Initialize database on Render
+def init_db():
     with app.app_context():
         db.create_all()
         
@@ -138,6 +138,14 @@ if __name__ == '__main__':
             print("Teacher:  harrison@studygrind.com / teacher123")
             print("Student:  alex@studygrind.com / student123")
             print("=" * 50)
-    
-    # Run the app
-    app.run(debug=True, host='0.0.0.0', port=5000)
+
+# Initialize database on startup
+if __name__ != '__main__':
+    # When running on Render (gunicorn)
+    init_db()
+else:
+    # Local development
+    init_db()
+
+# For gunicorn (Render)
+app = app
