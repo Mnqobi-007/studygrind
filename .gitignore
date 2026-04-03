@@ -4,39 +4,43 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
+*.egg-info/
+*.egg
+.eggs/
+dist/
 build/
 develop-eggs/
-dist/
 downloads/
-eggs/
-.eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
 wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+*.pyc
+*.pyo
 
-# Database
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Database - Local only
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
 
-# Uploads
+# Uploads - Local only
 uploads/
 static/uploads/
 /tmp/uploads/
 
-# Environment
+# Environment Variables - Don't commit secrets
 .env
 .env.local
 .env.production
+.env.*.local
 
 # IDE
 .vscode/
@@ -45,12 +49,35 @@ static/uploads/
 *.swo
 *~
 .DS_Store
+*.sublime-*
 
 # Logs
 *.log
 logs/
+*.pid
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
+.tox/
+.mypy_cache/
+
+# Flask
+instance/
+.webassets-cache
+
+# Render (Keep deployment files)
+!.gitignore
+!runtime.txt
+!requirements.txt
+!render.yaml
+
+# Keep all source code
+!*.py
+!*.html
+!*.css
+!*.js
+!*.txt
+!*.yaml
+!*.json
