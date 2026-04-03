@@ -2,22 +2,30 @@ services:
   - type: web
     name: studygrind
     runtime: python
+    repo: https://github.com/yourusername/studygrind
+    plan: free
+    region: oregon
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: FLASK_ENV
+        value: production
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
         fromDatabase:
-          name: studygrind-db
+          name: studygrind_db
           property: connectionString
-      - key: RENDER
-        value: true
-      - key: PYTHON_VERSION
-        value: 3.11.0
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
 
-databases:
-  - name: studygrind-db
-    databaseName: studygrind
-    user: studygrind
+  - type: database
+    name: studygrind_db
     plan: free
+    region: oregon
+    databaseName: studygrind
+    postgresMajorVersion: 15
