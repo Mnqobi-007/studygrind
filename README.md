@@ -45,5 +45,5 @@ StudyGrind is a comprehensive learning management system that connects students,
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/studygrind.git
+git clone https://github.com/mnqobi-007/studygrind.git
 cd studygrind
